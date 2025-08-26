@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "observability": {
+      "command": "node",
+      "args": ["src/server.js"],
+      "cwd": ".",
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}
