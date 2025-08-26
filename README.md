@@ -133,7 +133,16 @@ The project includes comprehensive tests covering:
 - Real-time streaming
 - Output formatting
 
-All tests pass with Node.js 18+ and validate core functionality.
+Run tests with:
+```bash
+npm install  # Install dependencies first
+npm test     # Run test suite
+```
+
+All tests pass with Node.js 18+ and validate core functionality. The demo can be run with:
+```bash
+node examples/demo.js
+```
 
 ## 📖 Documentation
 
