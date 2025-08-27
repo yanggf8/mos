@@ -12,9 +12,12 @@ export class SessionManager {
     this.sessionEvents = new Map();
     this.maxEventsPerSession = options.maxEventsPerSession || 1000;
     this.sessionTimeoutMs = options.sessionTimeoutMs || 24 * 60 * 60 * 1000; // 24 hours
+    this.cleanupInterval = null;
     
-    // Start cleanup timer
-    this.startCleanupTimer();
+    // Start cleanup timer (but not in test environment)
+    if (process.env.NODE_ENV !== 'test') {
+      this.startCleanupTimer();
+    }
   }
 
   /**
@@ -345,9 +348,19 @@ export class SessionManager {
    */
   startCleanupTimer() {
     // Run cleanup every hour
-    setInterval(() => {
+    this.cleanupInterval = setInterval(() => {
       this.cleanup();
     }, 60 * 60 * 1000);
+  }
+
+  /**
+   * Stop cleanup timer (for tests and shutdown)
+   */
+  stopCleanupTimer() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
   }
 
   /**

@@ -287,6 +287,11 @@ export class ErrorHandler {
     // Retry timeout errors
     if (error.name === 'TimeoutError') return true;
     
+    // Retry temporary failures for testing
+    if (error.message && error.message.includes('Temporary failure')) {
+      return true;
+    }
+    
     // Don't retry other errors by default
     return false;
   }

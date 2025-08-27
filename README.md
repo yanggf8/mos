@@ -163,18 +163,30 @@ Once integrated, Claude Code provides:
 
 The project includes comprehensive tests covering:
 - Event schema validation
-- Session management lifecycle
+- Session management lifecycle  
 - Activity tree building
 - Real-time streaming
 - Output formatting
+- Performance and memory usage
+- Error handling and retry logic
 
 Run tests with:
 ```bash
 npm install  # Install dependencies first
 npm test     # Run test suite
+
+# For test environment (no background timers)
+NODE_ENV=test npm test
 ```
 
-All tests pass with Node.js 18+ and validate core functionality. The demo can be run with:
+All tests pass with Node.js 18+ and validate core functionality including:
+- High-volume event processing (2000+ events)
+- Concurrent stream handling (10+ concurrent streams)
+- Memory management and session cleanup
+- Error recovery with exponential backoff
+- End-to-end performance validation
+
+The demo can be run with:
 ```bash
 node examples/demo.js
 ```

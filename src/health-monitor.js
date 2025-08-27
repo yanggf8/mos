@@ -44,8 +44,12 @@ export class HealthMonitor extends EventEmitter {
 
     this.healthCheckInterval = options.healthCheckInterval || 30000; // 30s
     this.metricsRetention = options.metricsRetention || 300; // Keep 300 recent samples
+    this.healthCheckTimer = null;
 
-    this.startHealthChecks();
+    // Don't start health checks in test environment
+    if (process.env.NODE_ENV !== 'test') {
+      this.startHealthChecks();
+    }
     this.setupGCMonitoring();
   }
 
@@ -392,7 +396,7 @@ export class HealthMonitor extends EventEmitter {
    * @private
    */
   startHealthChecks() {
-    setInterval(() => {
+    this.healthCheckTimer = setInterval(() => {
       const health = this.getHealthStatus();
       
       // Check memory usage
@@ -423,6 +427,16 @@ export class HealthMonitor extends EventEmitter {
         this.metrics.memory.gc_count++;
         return originalGC();
       };
+    }
+  }
+
+  /**
+   * Stop health checks (for tests and shutdown)
+   */
+  stopHealthChecks() {
+    if (this.healthCheckTimer) {
+      clearInterval(this.healthCheckTimer);
+      this.healthCheckTimer = null;
     }
   }
 
