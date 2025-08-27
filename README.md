@@ -24,17 +24,28 @@ A lightweight MCP server that provides real-time visibility into Claude Code act
    npm install
    ```
 
-2. **Start the server:**
+2. **Add MCP server to Claude Code:**
    ```bash
-   npm start
+   # Add the observability MCP server
+   claude mcp add observability node src/server.js --cwd /path/to/mcp-observability-server
+   
+   # Verify it was added
+   claude mcp list
    ```
 
-3. **Run the demo:**
+3. **Start with Claude Code:**
+   ```bash
+   # The MCP server starts automatically when Claude Code loads
+   # Auto-configuration applies observability settings and hooks
+   claude --version  # Verify Claude Code loads with MCP server
+   ```
+
+4. **Or run standalone demo:**
    ```bash
    node examples/demo.js
    ```
 
-4. **Run tests:**
+5. **Run tests:**
    ```bash
    npm test
    ```
@@ -54,31 +65,41 @@ A lightweight MCP server that provides real-time visibility into Claude Code act
 
 ## ⚙️ Claude Code Integration
 
-Add to your Claude Code `settings.json`:
+### Automatic Setup (Recommended)
+The MCP server automatically configures Claude Code when it loads:
+- Installs colored activity logging hooks
+- Sets observability-focused output style  
+- Creates activity log at `~/.claude/observability.log`
 
-```json
-{
-  "mcpServers": {
-    "observability": {
-      "command": "node",
-      "args": ["path/to/mcp-observability-server/src/server.js"],
-      "cwd": "path/to/mcp-observability-server"
-    }
-  },
-  "hooks": {
-    "mcp_observability": {
-      "server": "observability",
-      "events": {
-        "task_start": "log_event",
-        "task_complete": "log_event",
-        "tool_pre": "log_event",
-        "tool_post": "log_event",
-        "mcp_request": "log_event",
-        "subagent_spawn": "log_event"
-      }
-    }
-  }
-}
+### Manual Setup
+Add MCP server using Claude CLI:
+
+```bash
+# Add the observability MCP server
+claude mcp add observability node src/server.js --cwd /absolute/path/to/mcp-observability-server
+
+# Enable the server (if needed)
+claude mcp enable observability
+```
+
+### Verify Integration
+```bash
+# List configured MCP servers
+claude mcp list
+
+# Check if observability server is active
+claude mcp status observability
+
+# Test Claude Code with observability
+claude --version  # Should load MCP server and apply auto-configuration
+```
+
+### What You'll See
+Once integrated, Claude Code displays colored activity logs:
+```bash
+[14:32:15] 🔧 TOOL file_read - Started
+[14:32:16] 🔧 TOOL file_read (245ms) - ✓ Completed
+[14:32:22] ⚡ PERF ⚠️ Slow: database_query (5200ms > 5000ms)
 ```
 
 ## 🛠️ API Methods

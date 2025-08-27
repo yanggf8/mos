@@ -166,4 +166,35 @@ Colors can be customized through the `COLOR_SCHEMES` configuration:
 - HTML schemes for web interfaces
 - Custom schemes for specific environments
 
+## 🚀 Getting Started
+
+### **Claude Code Integration**
+Add MCP server using Claude CLI:
+```bash
+# Add the observability MCP server
+claude mcp add observability node src/server.js --cwd /path/to/mcp-observability-server
+
+# Verify it was added
+claude mcp list
+```
+
+### **Auto-Applied Features**
+When Claude Code loads the MCP server:
+- **Colored hooks** automatically installed
+- **Activity logging** with color-coded output
+- **Performance monitoring** with visual alerts
+- **Real-time feedback** in Claude Code interface
+
+### **Verification**
+```bash
+# List configured MCP servers
+claude mcp list
+
+# Check server status
+claude mcp status observability
+
+# Start Claude Code (loads MCP server automatically)
+claude --version
+```
+
 This comprehensive color system provides immediate visual feedback about system activity, performance, and health status across all MCP Observability Server interfaces.
