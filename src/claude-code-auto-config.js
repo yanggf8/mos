@@ -20,9 +20,10 @@ export class ClaudeCodeAutoConfig {
 
   /**
    * Apply default observability configuration when server starts
+   * Focus on MCP-based observability, not direct hooks
    */
   async applyDefaultConfiguration() {
-    console.log('🔧 Auto-configuring Claude Code for observability...');
+    console.log('🔧 Auto-configuring Claude Code for MCP observability...');
 
     try {
       // 1. Ensure output styles are available
@@ -31,10 +32,10 @@ export class ClaudeCodeAutoConfig {
       // 2. Apply default observability style
       await this.setDefaultOutputStyle();
 
-      // 3. Configure basic hooks if not present
-      await this.ensureBasicHooks();
+      // 3. Initialize MCP observability (server handles monitoring via MCP tools)
+      await this.initializeMCPObservability();
 
-      console.log('✅ Claude Code auto-configuration completed');
+      console.log('✅ Claude Code MCP observability auto-configuration completed');
       return true;
     } catch (error) {
       console.warn('⚠️  Could not auto-configure Claude Code:', error.message);
@@ -98,24 +99,22 @@ export class ClaudeCodeAutoConfig {
   }
 
   /**
-   * Ensure basic observability hooks are present
+   * Initialize MCP observability - prepare for activity monitoring via MCP tools
    */
-  async ensureBasicHooks() {
-    if (!existsSync(this.settingsFile)) {
-      return;
-    }
-
+  async initializeMCPObservability() {
     try {
-      const settings = JSON.parse(readFileSync(this.settingsFile, 'utf8'));
-      
-      // Only add hooks if none exist
-      if (!settings.hooks || Object.keys(settings.hooks).length === 0) {
-        settings.hooks = this.createBasicObservabilityHooks();
-        writeFileSync(this.settingsFile, JSON.stringify(settings, null, 2));
-        console.log('🔗 Added basic observability hooks');
+      // Create observability log directory
+      const logPath = path.join(this.claudeDir, 'observability.log');
+      if (!existsSync(logPath)) {
+        writeFileSync(logPath, '');
+        console.log('📝 Created MCP observability log file');
       }
+      
+      // The MCP server will handle activity monitoring via its tools
+      // No direct hooks needed - Claude Code will call MCP tools for logging
+      console.log('🔗 MCP observability initialized - monitoring via MCP protocol');
     } catch (error) {
-      console.warn('Could not add hooks:', error.message);
+      console.warn('Could not initialize MCP observability:', error.message);
     }
   }
 
@@ -161,39 +160,19 @@ This style provides subtle observability awareness without changing your core he
   }
 
   /**
-   * Create basic observability hooks configuration with colors
+   * MCP observability relies on the MCP server's tools, not direct hooks
+   * This method is kept for reference but no longer used for auto-configuration
    */
-  createBasicObservabilityHooks() {
+  createMCPObservabilityReference() {
     return {
-      "observability_basic_activity": {
-        "command": ["sh", "-c", "echo \"[$(date +'%H:%M:%S')] \\033[94m🔧 TOOL\\033[0m $TOOL_NAME - \\033[96mStarted\\033[0m\" | tee -a ~/.claude/observability.log"],
-        "matchers": [
-          {
-            "events": ["PreToolUse"],
-            "description": "Colored activity logging"
-          }
-        ]
-      },
-      "observability_basic_completion": {
-        "command": ["sh", "-c", "duration_color=\"\\033[92m\"; if [ \"$TOOL_DURATION\" -gt 2000 ]; then duration_color=\"\\033[93m\"; fi; if [ \"$TOOL_DURATION\" -gt 5000 ]; then duration_color=\"\\033[91m\"; fi; echo \"[$(date +'%H:%M:%S')] \\033[94m🔧 TOOL\\033[0m $TOOL_NAME ${duration_color}(${TOOL_DURATION}ms)\\033[0m - \\033[92m✓ Completed\\033[0m\" | tee -a ~/.claude/observability.log"],
-        "matchers": [
-          {
-            "events": ["PostToolUse"],
-            "description": "Colored completion logging with timing"
-          }
-        ]
-      },
-      "observability_basic_performance": {
-        "command": ["sh", "-c", "if [ \"$TOOL_DURATION\" -gt 5000 ]; then echo \"[$(date +'%H:%M:%S')] \\033[93m⚡ PERF\\033[0m \\033[91m⚠️ Slow\\033[0m: $TOOL_NAME \\033[91m(${TOOL_DURATION}ms > 5000ms)\\033[0m\"; fi"],
-        "matchers": [
-          {
-            "events": ["PostToolUse"],
-            "conditions": [
-              {"field": "duration_ms", "operator": "greater_than", "value": 5000}
-            ]
-          }
-        ]
-      }
+      note: "Observability is handled by MCP server tools, not direct Claude Code hooks",
+      approach: "Claude Code calls MCP server tools like log_event, stream_activity, get_health_status",
+      benefits: [
+        "Centralized observability logic in MCP server",
+        "No direct settings.json manipulation needed", 
+        "Proper MCP protocol usage",
+        "Server-managed activity monitoring"
+      ]
     };
   }
 
