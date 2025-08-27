@@ -1,0 +1,190 @@
+{
+  "hooks": {
+    "observability_tool_activity": {
+      "command": ["sh", "-c", "echo \"[$(date +'%H:%M:%S')] \\033[94m🔧 TOOL\\033[0m $TOOL_NAME - \\033[96mStarted\\033[0m\" | tee -a ~/.claude/observability.log"],
+      "matchers": [
+        {
+          "events": ["PreToolUse"],
+          "description": "Log tool usage with colored activity type"
+        }
+      ]
+    },
+    
+    "observability_tool_completion": {
+      "command": ["sh", "-c", "duration_color=\"\\033[92m\"; if [ \"$TOOL_DURATION\" -gt 2000 ]; then duration_color=\"\\033[93m\"; fi; if [ \"$TOOL_DURATION\" -gt 5000 ]; then duration_color=\"\\033[91m\"; fi; echo \"[$(date +'%H:%M:%S')] \\033[94m🔧 TOOL\\033[0m $TOOL_NAME ${duration_color}(${TOOL_DURATION}ms)\\033[0m - \\033[92m✓ Completed\\033[0m\" | tee -a ~/.claude/observability.log"],
+      "matchers": [
+        {
+          "events": ["PostToolUse"],
+          "description": "Log tool completion with colored timing"
+        }
+      ]
+    },
+
+    "observability_performance_alert": {
+      "command": ["sh", "-c", "if [ \"$TOOL_DURATION\" -gt 5000 ]; then echo \"[$(date +'%H:%M:%S')] \\033[93m⚡ PERF\\033[0m \\033[91m⚠️ Slow\\033[0m: $TOOL_NAME \\033[91m(${TOOL_DURATION}ms > 5000ms threshold)\\033[0m\"; fi"],
+      "matchers": [
+        {
+          "events": ["PostToolUse"],
+          "conditions": [
+            {
+              "field": "duration_ms",
+              "operator": "greater_than",
+              "value": 5000
+            }
+          ]
+        }
+      ]
+    },
+
+    "observability_error_notification": {
+      "command": ["sh", "-c", "echo \"[$(date +'%H:%M:%S')] \\033[91m❌ ERROR\\033[0m Tool error: $TOOL_NAME - \\033[91m$ERROR_MESSAGE\\033[0m\" | tee -a ~/.claude/observability.log"],
+      "matchers": [
+        {
+          "events": ["PostToolUse"],
+          "conditions": [
+            {
+              "field": "success",
+              "operator": "equals",
+              "value": false
+            }
+          ]
+        }
+      ]
+    },
+
+    "observability_task_activity": {
+      "command": ["sh", "-c", "if [ \"$HOOK_EVENT\" = \"task_started\" ]; then echo \"[$(date +'%H:%M:%S')] \\033[92m📋 TASK\\033[0m $TASK_NAME - \\033[96mStarted\\033[0m\"; elif [ \"$HOOK_EVENT\" = \"task_completed\" ]; then echo \"[$(date +'%H:%M:%S')] \\033[92m📋 TASK\\033[0m $TASK_NAME - \\033[92m✓ Completed\\033[0m\"; fi | tee -a ~/.claude/observability.log"],
+      "matchers": [
+        {
+          "events": ["Notification"],
+          "conditions": [
+            {
+              "field": "notification_type",
+              "operator": "in",
+              "value": ["task_started", "task_completed", "task_failed"]
+            }
+          ]
+        }
+      ]
+    },
+
+    "observability_agent_activity": {
+      "command": ["sh", "-c", "if [ \"$AGENT_EVENT\" = \"spawn\" ]; then echo \"[$(date +'%H:%M:%S')] \\033[95m🤖 AGENT\\033[0m $AGENT_TYPE - \\033[96mSpawned\\033[0m\"; elif [ \"$AGENT_EVENT\" = \"complete\" ]; then echo \"[$(date +'%H:%M:%S')] \\033[95m🤖 AGENT\\033[0m $AGENT_TYPE - \\033[92m✓ Completed\\033[0m\"; fi | tee -a ~/.claude/observability.log"],
+      "matchers": [
+        {
+          "events": ["Notification"],
+          "conditions": [
+            {
+              "field": "notification_type",
+              "operator": "in",
+              "value": ["agent_spawn", "agent_complete", "agent_failed"]
+            }
+          ]
+        }
+      ]
+    },
+
+    "observability_session_summary": {
+      "command": ["sh", "-c", "echo \"[$(date +'%H:%M:%S')] \\033[97m📊 SESSION\\033[0m: $SESSION_DURATION - \\033[94m$TOOLS_USED tools used\\033[0m\" | tee -a ~/.claude/observability.log"],
+      "matchers": [
+        {
+          "events": ["Notification"],
+          "conditions": [
+            {
+              "field": "notification_type",
+              "operator": "equals", 
+              "value": "session_complete"
+            }
+          ]
+        }
+      ]
+    },
+
+    "observability_health_check": {
+      "command": ["sh", "-c", "health_color=\"\\033[92m\"; health_icon=\"❤️\"; if [ \"$HEALTH_STATUS\" = \"warning\" ]; then health_color=\"\\033[93m\"; health_icon=\"⚠️\"; elif [ \"$HEALTH_STATUS\" = \"error\" ]; then health_color=\"\\033[91m\"; health_icon=\"💔\"; fi; echo \"[$(date +'%H:%M:%S')] ${health_color}${health_icon} HEALTH\\033[0m System status: ${health_color}$HEALTH_STATUS\\033[0m\""],
+      "matchers": [
+        {
+          "events": ["Notification"],
+          "conditions": [
+            {
+              "field": "notification_type",
+              "operator": "equals",
+              "value": "health_check"
+            }
+          ]
+        }
+      ]
+    },
+
+    "observability_mcp_activity": {
+      "command": ["sh", "-c", "if [ \"$MCP_EVENT\" = \"request\" ]; then echo \"[$(date +'%H:%M:%S')] \\033[96m🔗 MCP\\033[0m $MCP_METHOD - \\033[96mRequest sent\\033[0m\"; elif [ \"$MCP_EVENT\" = \"response\" ]; then echo \"[$(date +'%H:%M:%S')] \\033[96m🔗 MCP\\033[0m $MCP_METHOD - \\033[92mResponse received\\033[0m\"; elif [ \"$MCP_EVENT\" = \"error\" ]; then echo \"[$(date +'%H:%M:%S')] \\033[96m🔗 MCP\\033[0m $MCP_METHOD - \\033[91m✗ Error\\033[0m\"; fi | tee -a ~/.claude/observability.log"],
+      "matchers": [
+        {
+          "events": ["Notification"],
+          "conditions": [
+            {
+              "field": "notification_type",
+              "operator": "in",
+              "value": ["mcp_request", "mcp_response", "mcp_error"]
+            }
+          ]
+        }
+      ]
+    },
+
+    "observability_desktop_notification": {
+      "command": ["sh", "-c", "if command -v osascript > /dev/null; then osascript -e 'display notification \"⚡ Slow operation detected: $TOOL_NAME (${TOOL_DURATION}ms)\" with title \"Claude Code Observability\"'; fi"],
+      "matchers": [
+        {
+          "events": ["PostToolUse"],
+          "conditions": [
+            {
+              "field": "duration_ms",
+              "operator": "greater_than",
+              "value": 10000
+            }
+          ]
+        }
+      ]
+    },
+
+    "observability_mcp_integration": {
+      "command": ["node", "-e", "
+        // Integration with our MCP Observability Server - Enhanced with color support
+        const event = {
+          session_id: process.env.CLAUDE_SESSION_ID || 'hook-session',
+          event_type: process.env.HOOK_EVENT === 'PreToolUse' ? 'tool_pre_call' : 'tool_post_call',
+          status: process.env.HOOK_EVENT === 'PreToolUse' ? 'started' : (process.env.TOOL_SUCCESS === 'true' ? 'success' : 'error'),
+          duration_ms: parseInt(process.env.TOOL_DURATION || '0'),
+          timestamp: new Date().toISOString(),
+          details: {
+            name: process.env.TOOL_NAME,
+            description: process.env.TOOL_DESCRIPTION || ''
+          }
+        };
+        
+        // Send to MCP server with color-coded console output
+        fetch('http://localhost:3000/mcp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            method: 'log_event',
+            params: { event }
+          })
+        }).then(() => {
+          const colors = { tool: '\\033[94m🔧', mcp: '\\033[96m🔗', reset: '\\033[0m' };
+          console.log(`${colors.mcp} MCP${colors.reset} Event sent to observability server`);
+        }).catch(() => {
+          const colors = { error: '\\033[91m❌', reset: '\\033[0m' };
+          console.log(`${colors.error} MCP${colors.reset} Observability: Server unavailable`);
+        });
+      "],
+      "matchers": [
+        {
+          "events": ["PreToolUse", "PostToolUse"],
+          "description": "Send colored events to MCP Observability Server"
+        }
+      ]
+    }
+  }
+}

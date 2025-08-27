@@ -161,21 +161,30 @@ This style provides subtle observability awareness without changing your core he
   }
 
   /**
-   * Create basic observability hooks configuration
+   * Create basic observability hooks configuration with colors
    */
   createBasicObservabilityHooks() {
     return {
       "observability_basic_activity": {
-        "command": ["sh", "-c", "echo \"[$(date +'%H:%M:%S')] TOOL $TOOL_NAME - Started\" >> ~/.claude/observability.log"],
+        "command": ["sh", "-c", "echo \"[$(date +'%H:%M:%S')] \\033[94m🔧 TOOL\\033[0m $TOOL_NAME - \\033[96mStarted\\033[0m\" | tee -a ~/.claude/observability.log"],
         "matchers": [
           {
             "events": ["PreToolUse"],
-            "description": "Basic activity logging"
+            "description": "Colored activity logging"
+          }
+        ]
+      },
+      "observability_basic_completion": {
+        "command": ["sh", "-c", "duration_color=\"\\033[92m\"; if [ \"$TOOL_DURATION\" -gt 2000 ]; then duration_color=\"\\033[93m\"; fi; if [ \"$TOOL_DURATION\" -gt 5000 ]; then duration_color=\"\\033[91m\"; fi; echo \"[$(date +'%H:%M:%S')] \\033[94m🔧 TOOL\\033[0m $TOOL_NAME ${duration_color}(${TOOL_DURATION}ms)\\033[0m - \\033[92m✓ Completed\\033[0m\" | tee -a ~/.claude/observability.log"],
+        "matchers": [
+          {
+            "events": ["PostToolUse"],
+            "description": "Colored completion logging with timing"
           }
         ]
       },
       "observability_basic_performance": {
-        "command": ["sh", "-c", "if [ \"$TOOL_DURATION\" -gt 5000 ]; then echo \"[$(date +'%H:%M:%S')] PERF ⚠️ Slow: $TOOL_NAME (${TOOL_DURATION}ms)\"; fi"],
+        "command": ["sh", "-c", "if [ \"$TOOL_DURATION\" -gt 5000 ]; then echo \"[$(date +'%H:%M:%S')] \\033[93m⚡ PERF\\033[0m \\033[91m⚠️ Slow\\033[0m: $TOOL_NAME \\033[91m(${TOOL_DURATION}ms > 5000ms)\\033[0m\"; fi"],
         "matchers": [
           {
             "events": ["PostToolUse"],

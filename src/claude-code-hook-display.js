@@ -11,6 +11,14 @@
  */
 
 import { formatDuration } from './formatter.js';
+import { 
+  formatColoredLogEntry,
+  formatColoredMessage,
+  formatColoredTimestamp,
+  getActivityColor,
+  getStatusColor,
+  COLOR_SCHEMES
+} from './activity-colors.js';
 
 /**
  * Format observability data for Claude Code hook display
@@ -20,9 +28,20 @@ import { formatDuration } from './formatter.js';
 /**
  * Format event for hook display with activity type after timestamp
  * @param {Object} event - Event to display
+ * @param {string} colorScheme - Color scheme to use ('terminal', 'claude_code', 'html')
  * @returns {string} Hook-formatted message
  */
-export function formatHookEventMessage(event) {
+export function formatHookEventMessage(event, colorScheme = 'claude_code') {
+  // Use the new colored formatting system
+  return formatColoredLogEntry(event, COLOR_SCHEMES[colorScheme]);
+}
+
+/**
+ * Legacy format function for backward compatibility
+ * @param {Object} event - Event to display
+ * @returns {string} Hook-formatted message without colors
+ */
+export function formatHookEventMessagePlain(event) {
   const operation = event.details?.name || event.event_type;
   const duration = event.duration_ms ? ` (${formatDuration(event.duration_ms)})` : '';
   
