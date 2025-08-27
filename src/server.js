@@ -19,6 +19,14 @@ import { HealthMonitor } from './health-monitor.js';
 import { ErrorHandler } from './error-handler.js';
 import { createEvent, validateEvent, EVENT_TYPES } from './types.js';
 import { formatActivityTree, formatSessionSummary } from './formatter.js';
+import { 
+  formatMCPResponse,
+  formatClaudeCodeTaskProgress,
+  formatClaudeCodeSessionSummary,
+  formatClaudeCodeHealthStatus,
+  formatClaudeCodeActivityStream
+} from './claude-code-formatter.js';
+import { autoConfigureClaudeCode } from './claude-code-auto-config.js';
 
 class ObservabilityServer {
   constructor(options = {}) {
@@ -460,9 +468,21 @@ class ObservabilityServer {
   }
 
   async run() {
+    // Auto-configure Claude Code if available
+    console.error('🚀 Starting MCP Observability Server...');
+    
+    try {
+      const configured = await autoConfigureClaudeCode();
+      if (configured) {
+        console.error('✅ Claude Code auto-configuration completed');
+      }
+    } catch (error) {
+      console.error('⚠️  Auto-configuration failed:', error.message);
+    }
+
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.error('MCP Observability Server running on stdio');
+    console.error('📊 MCP Observability Server running on stdio');
   }
 }
 

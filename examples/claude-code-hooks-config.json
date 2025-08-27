@@ -1,0 +1,119 @@
+{
+  "hooks": {
+    "observability_tool_activity": {
+      "command": ["sh", "-c", "echo \"[$(date +'%H:%M:%S')] TOOL $TOOL_NAME - Starting execution\" | tee -a ~/.claude/observability.log"],
+      "matchers": [
+        {
+          "events": ["PreToolUse"],
+          "description": "Log tool usage with activity type"
+        }
+      ]
+    },
+    
+    "observability_tool_completion": {
+      "command": ["sh", "-c", "echo \"[$(date +'%H:%M:%S')] TOOL $TOOL_NAME (${TOOL_DURATION}ms) - ✓ Completed\" | tee -a ~/.claude/observability.log"],
+      "matchers": [
+        {
+          "events": ["PostToolUse"],
+          "description": "Log tool completion"
+        }
+      ]
+    },
+
+    "observability_performance_alert": {
+      "command": ["sh", "-c", "if [ \"$TOOL_DURATION\" -gt 5000 ]; then echo \"[$(date +'%H:%M:%S')] PERF ⚠️ Slow: $TOOL_NAME (${TOOL_DURATION}ms > 5000ms threshold)\"; fi"],
+      "matchers": [
+        {
+          "events": ["PostToolUse"],
+          "conditions": [
+            {
+              "field": "duration_ms",
+              "operator": "greater_than",
+              "value": 5000
+            }
+          ]
+        }
+      ]
+    },
+
+    "observability_error_notification": {
+      "command": ["sh", "-c", "echo \"❌ Tool error: $TOOL_NAME - $ERROR_MESSAGE\" | tee -a ~/.claude/observability.log"],
+      "matchers": [
+        {
+          "events": ["PostToolUse"],
+          "conditions": [
+            {
+              "field": "success",
+              "operator": "equals",
+              "value": false
+            }
+          ]
+        }
+      ]
+    },
+
+    "observability_session_summary": {
+      "command": ["sh", "-c", "echo \"📋 Session: $SESSION_DURATION - $TOOLS_USED tools used\" | tee -a ~/.claude/observability.log"],
+      "matchers": [
+        {
+          "events": ["Notification"],
+          "conditions": [
+            {
+              "field": "notification_type",
+              "operator": "equals", 
+              "value": "session_complete"
+            }
+          ]
+        }
+      ]
+    },
+
+    "observability_desktop_notification": {
+      "command": ["sh", "-c", "if command -v osascript > /dev/null; then osascript -e 'display notification \"Slow operation detected: $TOOL_NAME\" with title \"Claude Code Observability\"'; fi"],
+      "matchers": [
+        {
+          "events": ["PostToolUse"],
+          "conditions": [
+            {
+              "field": "duration_ms",
+              "operator": "greater_than",
+              "value": 10000
+            }
+          ]
+        }
+      ]
+    },
+
+    "observability_mcp_integration": {
+      "command": ["node", "-e", "
+        // Integration with our MCP Observability Server
+        const event = {
+          session_id: process.env.CLAUDE_SESSION_ID || 'hook-session',
+          event_type: process.env.HOOK_EVENT === 'PreToolUse' ? 'tool_pre_call' : 'tool_post_call',
+          status: process.env.HOOK_EVENT === 'PreToolUse' ? 'started' : (process.env.TOOL_SUCCESS === 'true' ? 'success' : 'error'),
+          duration_ms: parseInt(process.env.TOOL_DURATION || '0'),
+          details: {
+            name: process.env.TOOL_NAME,
+            description: process.env.TOOL_DESCRIPTION || ''
+          }
+        };
+        
+        // Send to MCP server (simplified example)
+        fetch('http://localhost:3000/mcp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            method: 'log_event',
+            params: { event }
+          })
+        }).catch(() => console.log('MCP Observability: Server unavailable'));
+      "],
+      "matchers": [
+        {
+          "events": ["PreToolUse", "PostToolUse"],
+          "description": "Send events to MCP Observability Server"
+        }
+      ]
+    }
+  }
+}
