@@ -26,18 +26,23 @@ A lightweight MCP server that provides real-time visibility into Claude Code act
 
 2. **Add MCP server to Claude Code:**
    ```bash
-   # Add the observability MCP server
-   claude mcp add observability node src/server.js --cwd /path/to/mcp-observability-server
+   # Add the observability MCP server (run from project directory)
+   claude mcp add observability node src/server.js
    
-   # Verify it was added
+   # Verify it was added successfully
    claude mcp list
+   # Should show: observability: node /path/to/mos/src/server.js - ✓ Connected
    ```
 
-3. **Start with Claude Code:**
+3. **Test integration:**
    ```bash
-   # The MCP server starts automatically when Claude Code loads
-   # Auto-configuration applies observability settings and hooks
-   claude --version  # Verify Claude Code loads with MCP server
+   # Test with debug output to see MCP server loading
+   claude -p "What is 2+2?" --debug
+   
+   # You should see:
+   # [ERROR] MCP server "observability" Server stderr: 🚀 Starting MCP Observability Server...
+   # [ERROR] MCP server "observability" Server stderr: ✅ Claude Code auto-configuration completed
+   # [DEBUG] MCP server "observability": Successfully connected to stdio server
    ```
 
 4. **Or run standalone demo:**
@@ -75,32 +80,41 @@ The MCP server automatically configures Claude Code when it loads:
 Add MCP server using Claude CLI:
 
 ```bash
-# Add the observability MCP server
-claude mcp add observability node src/server.js --cwd /absolute/path/to/mcp-observability-server
+# Add the observability MCP server (from project directory)
+claude mcp add observability node src/server.js
 
-# Enable the server (if needed)
-claude mcp enable observability
+# Verify successful registration
+claude mcp get observability
 ```
 
 ### Verify Integration
 ```bash
-# List configured MCP servers
+# List all configured MCP servers
 claude mcp list
 
-# Check if observability server is active
-claude mcp status observability
+# Check observability server details
+claude mcp get observability
+# Status: ✓ Connected
+# Command: node src/server.js
 
-# Test Claude Code with observability
-claude --version  # Should load MCP server and apply auto-configuration
+# Test with debug output
+claude -p "Hello world" --debug | grep observability
 ```
 
 ### What You'll See
-Once integrated, Claude Code displays colored activity logs:
+When MCP server loads successfully:
 ```bash
-[14:32:15] 🔧 TOOL file_read - Started
-[14:32:16] 🔧 TOOL file_read (245ms) - ✓ Completed
-[14:32:22] ⚡ PERF ⚠️ Slow: database_query (5200ms > 5000ms)
+🚀 Starting MCP Observability Server...
+✅ Claude Code auto-configuration completed  
+📊 MCP Observability Server running on stdio
 ```
+
+Once integrated, Claude Code provides:
+- **Real-time activity monitoring** via MCP protocol
+- **Colored activity logging** (auto-configured hooks)
+- **Performance monitoring** for slow operations (>5s)
+- **Session tracking** with automatic cleanup
+- **Observability-focused output style** applied automatically
 
 ## 🛠️ API Methods
 

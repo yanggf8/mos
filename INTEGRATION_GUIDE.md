@@ -12,25 +12,27 @@ npm install
 
 ### 2. Add MCP Server to Claude Code
 ```bash
-# Add the observability MCP server
-claude mcp add observability node src/server.js --cwd $(pwd)
+# Add the observability MCP server (run from project directory)
+claude mcp add observability node src/server.js
 
 # Verify it was added successfully
 claude mcp list
+# Should show: observability: node /path/to/mos/src/server.js - ✓ Connected
 
-# Check server status
-claude mcp status observability
+# Get detailed server information
+claude mcp get observability
 ```
 
 ### 3. Test Integration
 ```bash
-# Start Claude Code (MCP server loads automatically)
-claude --version
+# Test with debug output to confirm MCP server loading
+claude -p "Test message" --debug 2>&1 | head -20
 
-# You should see auto-configuration messages:
+# You should see in the output:
 # 🚀 Starting MCP Observability Server...
-# 🔧 Auto-configuring Claude Code for observability...
 # ✅ Claude Code auto-configuration completed
+# 📊 MCP Observability Server running on stdio
+# [DEBUG] MCP server "observability": Successfully connected to stdio server
 ```
 
 ## 🎨 What Gets Auto-Configured
@@ -43,14 +45,25 @@ When the MCP server loads, it automatically:
 
 ## 📊 Expected Output
 
-Once integrated, you'll see colored activity logs:
-
+### Server Startup (in debug mode)
 ```bash
-[14:32:15] 🔧 TOOL file_read - Started
-[14:32:16] 🔧 TOOL file_read (245ms) - ✓ Completed
-[14:32:22] ⚡ PERF ⚠️ Slow: database_query (5200ms > 5000ms)
-[14:35:30] 📋 TASK analyze_codebase (3.5m) - ✓ Completed
+🚀 Starting MCP Observability Server...
+✅ Claude Code auto-configuration completed  
+📊 MCP Observability Server running on stdio
+[DEBUG] MCP server "observability": Successfully connected to stdio server in 2338ms
 ```
+
+### Integration Confirmed
+When `claude mcp list` shows:
+```bash
+observability: node /home/user/mos/src/server.js - ✓ Connected
+```
+
+### Features Available
+- **Real-time activity monitoring** via MCP protocol
+- **Colored activity logging** (auto-configured hooks) 
+- **Performance monitoring** for slow operations
+- **Session tracking** with automatic cleanup
 
 ### Activity Types & Colors
 - **🔧 TOOL** (Blue) - File operations, API calls
@@ -65,11 +78,15 @@ Once integrated, you'll see colored activity logs:
 ### List MCP Servers
 ```bash
 claude mcp list
+# observability: node /path/to/mos/src/server.js - ✓ Connected
 ```
 
-### Check Server Status
+### Check Server Details
 ```bash
-claude mcp status observability
+claude mcp get observability
+# Status: ✓ Connected
+# Type: stdio  
+# Command: node src/server.js
 ```
 
 ### Enable/Disable Server
@@ -95,11 +112,11 @@ tail -f ~/.claude/observability.log
 # Check if server was added correctly
 claude mcp list
 
-# Verify server status
-claude mcp status observability
+# Get detailed server information
+claude mcp get observability
 
-# Check Claude Code version
-claude --version
+# Test with debug output
+claude -p "Test" --debug | grep observability
 ```
 
 ### No Activity Logs
@@ -116,14 +133,16 @@ cat ~/.claude/settings.json | grep -A 10 "hooks"
 
 ### MCP Server Connection Issues
 ```bash
-# Check server process
-ps aux | grep "mcp-observability-server"
+# Check if server is registered
+claude mcp get observability
 
-# Test server standalone
+# Test server startup manually
 node src/server.js
+# Should show: 🚀 Starting MCP Observability Server...
 
-# Check working directory is correct
-claude mcp status observability
+# Remove and re-add if needed
+claude mcp remove observability
+claude mcp add observability node src/server.js
 ```
 
 ### Auto-Configuration Not Working
@@ -195,13 +214,13 @@ Adjust performance thresholds by editing the auto-configuration in `src/claude-c
 
 ## ✅ Verification Checklist
 
-- [ ] `claude mcp list` shows observability server
-- [ ] `claude mcp status observability` shows "active"
-- [ ] `claude --version` loads without errors
-- [ ] `~/.claude/observability.log` gets created
-- [ ] Activity logs appear when using Claude Code
-- [ ] Colored output displays properly in terminal
-- [ ] Performance alerts show for slow operations (>5s)
+- [ ] `claude mcp add observability node src/server.js` succeeds
+- [ ] `claude mcp list` shows observability server as "✓ Connected"
+- [ ] `claude mcp get observability` shows "Status: ✓ Connected" 
+- [ ] `claude -p "Test" --debug` shows MCP server startup messages
+- [ ] Debug output includes "✅ Claude Code auto-configuration completed"
+- [ ] Auto-configuration applies observability settings
+- [ ] Real-time activity monitoring works via MCP protocol
 
 ## 🆘 Support
 
