@@ -11,14 +11,17 @@ import {
   ListToolsRequestSchema,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
+import { performance } from 'perf_hooks';
 
 import { SessionManager } from './session-manager.js';
 import { ActivityStreamer } from './activity-streamer.js';
+import { HealthMonitor } from './health-monitor.js';
+import { ErrorHandler } from './error-handler.js';
 import { createEvent, validateEvent, EVENT_TYPES } from './types.js';
 import { formatActivityTree, formatSessionSummary } from './formatter.js';
 
 class ObservabilityServer {
-  constructor() {
+  constructor(options = {}) {
     this.server = new Server(
       {
         name: 'mcp-observability-server',
@@ -31,10 +34,15 @@ class ObservabilityServer {
       }
     );
 
-    this.sessionManager = new SessionManager();
-    this.activityStreamer = new ActivityStreamer();
+    // Initialize monitoring and error handling
+    this.healthMonitor = new HealthMonitor(options.health);
+    this.errorHandler = new ErrorHandler(this.healthMonitor);
+    
+    this.sessionManager = new SessionManager(options.session);
+    this.activityStreamer = new ActivityStreamer(options.streaming);
     this.displaySettings = new Map();
 
+    this.setupHealthMonitoring();
     this.setupHandlers();
   }
 
@@ -177,15 +185,30 @@ class ObservabilityServer {
             },
             required: ['event']
           }
+        },
+        {
+          name: 'get_health_status',
+          description: 'Get server health and performance metrics',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              detailed: {
+                type: 'boolean',
+                default: false,
+                description: 'Include detailed metrics and diagnostics'
+              }
+            }
+          }
         }
       ]
     }));
 
-    // Handle tool calls
+    // Handle tool calls with error handling and monitoring
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
+      const startTime = performance.now();
 
-      try {
+      const handler = this.errorHandler.wrapWithErrorHandling(async () => {
         switch (name) {
           case 'stream_activity':
             return await this.handleStreamActivity(args);
@@ -201,6 +224,9 @@ class ObservabilityServer {
             
           case 'log_event':
             return await this.handleLogEvent(args);
+
+          case 'get_health_status':
+            return await this.handleGetHealthStatus(args);
             
           default:
             throw new McpError(
@@ -208,13 +234,75 @@ class ObservabilityServer {
               `Unknown tool: ${name}`
             );
         }
+      }, `tool:${name}`, {
+        retries: name === 'log_event' ? 2 : 0,
+        timeout: 30000,
+        circuitBreaker: true
+      });
+
+      try {
+        const result = await handler();
+        this.healthMonitor.recordRequest(name, startTime, true);
+        return result;
       } catch (error) {
-        throw new McpError(
-          ErrorCode.InternalError,
-          `Error executing ${name}: ${error.message}`
-        );
+        this.healthMonitor.recordRequest(name, startTime, false);
+        throw this.errorHandler.handleToolError(error, name, args);
       }
     });
+  }
+
+  setupHealthMonitoring() {
+    // Update session metrics periodically
+    setInterval(() => {
+      const stats = this.sessionManager.getStats();
+      this.healthMonitor.recordSessions(
+        stats.total_sessions,
+        stats.active_sessions
+      );
+    }, 5000);
+
+    // Log health status periodically
+    this.healthMonitor.on('health_check', (health) => {
+      if (health.status !== 'healthy') {
+        console.warn('Health check:', health.status, health);
+      }
+    });
+
+    // Handle alerts
+    this.healthMonitor.on('alert', (alert) => {
+      console.error(`[${alert.severity.toUpperCase()}] ${alert.type}:`, alert.data);
+    });
+
+    // Activity streamer cleanup
+    setInterval(() => {
+      this.activityStreamer.cleanup();
+    }, 300000); // 5 minutes
+  }
+
+  async handleGetHealthStatus(args) {
+    const { detailed = false } = args;
+    
+    let healthData;
+    if (detailed) {
+      healthData = this.healthMonitor.getDetailedMetrics();
+      // Add component-specific stats
+      healthData.components = {
+        session_manager: this.sessionManager.getStats(),
+        activity_streamer: this.activityStreamer.getStreamStats(),
+        error_handler: this.errorHandler.getErrorStats()
+      };
+    } else {
+      healthData = this.healthMonitor.getHealthStatus();
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(healthData, null, 2)
+        }
+      ]
+    };
   }
 
   async handleStreamActivity(args) {
@@ -334,32 +422,41 @@ class ObservabilityServer {
 
   async handleLogEvent(args) {
     const { event } = args;
+    const eventProcessingStart = performance.now();
     
     if (!validateEvent(event)) {
       throw new McpError(ErrorCode.InvalidRequest, 'Invalid event structure');
     }
 
-    // Ensure session exists
-    let session = this.sessionManager.getSession(event.session_id);
-    if (!session) {
-      session = this.sessionManager.createSession(event.session_id, 
-        event.details?.task_name || 'Unknown Task');
+    try {
+      // Ensure session exists
+      let session = this.sessionManager.getSession(event.session_id);
+      if (!session) {
+        session = this.sessionManager.createSession(event.session_id, 
+          event.details?.task_name || 'Unknown Task');
+      }
+
+      // Add event to session
+      const addedEvent = this.sessionManager.addEvent(event.session_id, event);
+      
+      // Stream the event to any active listeners
+      this.activityStreamer.broadcastEvent(event.session_id, addedEvent);
+
+      // Record event processing metrics
+      const processingTime = performance.now() - eventProcessingStart;
+      this.healthMonitor.recordEvent(event.event_type, processingTime);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Event logged: ${event.event_type} for session ${event.session_id}`
+          }
+        ]
+      };
+    } catch (error) {
+      throw this.errorHandler.handleSessionError(error, event.session_id, 'log_event');
     }
-
-    // Add event to session
-    this.sessionManager.addEvent(event.session_id, event);
-    
-    // Stream the event to any active listeners
-    this.activityStreamer.broadcastEvent(event.session_id, event);
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `Event logged: ${event.event_type} for session ${event.session_id}`
-        }
-      ]
-    };
   }
 
   async run() {
