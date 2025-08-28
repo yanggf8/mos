@@ -52,6 +52,7 @@ class ObservabilityServer {
 
     this.setupHealthMonitoring();
     this.setupHandlers();
+    this.setupLifecycleEvents();
   }
 
   setupHandlers() {
@@ -259,6 +260,38 @@ class ObservabilityServer {
     });
   }
 
+  setupLifecycleEvents() {
+    // Add MCP lifecycle event handlers
+    this.server.oninitialized = this.handleInitialized.bind(this);
+
+    // Override the connect method to add initialization logging
+    const originalConnect = this.server.connect.bind(this.server);
+    this.server.connect = async (transport) => {
+      console.error('🔄 MCP Server: init - Starting initialization sequence');
+      const result = await originalConnect(transport);
+      console.error('✅ MCP Server: init - Server initialization sequence completed');
+      return result;
+    };
+  }
+
+  handleInitialized() {
+    console.error('✅ MCP Server: ready - Server initialized and ready for requests');
+    
+    // Optionally send a logging message through MCP protocol
+    try {
+      if (this.server.sendLoggingMessage) {
+        this.server.sendLoggingMessage({
+          level: 'info',
+          data: 'MCP Observability Server ready for operation'
+        }).catch(() => {
+          // Silently handle logging errors to avoid noise
+        });
+      }
+    } catch (error) {
+      // Silently handle if sendLoggingMessage is not available
+    }
+  }
+
   setupHealthMonitoring() {
     // Update session metrics periodically
     setInterval(() => {
@@ -285,6 +318,13 @@ class ObservabilityServer {
     setInterval(() => {
       this.activityStreamer.cleanup();
     }, 300000); // 5 minutes
+
+    // Log server lifecycle status periodically
+    setInterval(() => {
+      if (this.server.transport && this.server.transport.readyState === 'open') {
+        console.error('📈 MCP Server: Status - Active and processing requests');
+      }
+    }, 60000); // Every 60 seconds
   }
 
   async handleGetHealthStatus(args) {
@@ -481,8 +521,24 @@ class ObservabilityServer {
     }
 
     const transport = new StdioServerTransport();
+    
+    // Add transport event logging
+    transport.onclose = () => {
+      console.error('🔌 MCP Server: Connection closed');
+    };
+    
+    transport.onerror = (error) => {
+      console.error('❌ MCP Server: Connection error:', error);
+    };
+
+    // Log connection attempt
+    console.error('🔄 MCP Server: Connecting to transport...');
+    
     await this.server.connect(transport);
-    console.error('📊 MCP Observability Server running on stdio');
+    
+    // Connection established
+    console.error('✅ MCP Server: connected - Transport connection established');
+    console.error('[MOS] MCP Observability Server listening on stdio');
   }
 }
 
