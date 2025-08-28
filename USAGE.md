@@ -12,7 +12,12 @@
    npm start
    ```
 
-3. **Run in development mode:**
+3. **Build and validate:**
+   ```bash
+   npm run build
+   ```
+
+4. **Run in development mode:**
    ```bash
    npm run dev
    ```
@@ -188,9 +193,10 @@ Log activity events (used internally by hooks).
 
 ## Testing
 
-Run the test suite:
+Build and run tests:
 ```bash
-npm test
+npm run build  # Validate code syntax
+npm test       # Run test suite
 ```
 
 Run the demo:

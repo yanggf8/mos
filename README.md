@@ -50,7 +50,12 @@ A lightweight MCP server that provides real-time visibility into Claude Code act
    node examples/demo.js
    ```
 
-5. **Run tests:**
+5. **Build and validate:**
+   ```bash
+   npm run build
+   ```
+
+6. **Run tests:**
    ```bash
    npm test
    ```
@@ -170,10 +175,11 @@ The project includes comprehensive tests covering:
 - Performance and memory usage
 - Error handling and retry logic
 
-Run tests with:
+Build and test with:
 ```bash
-npm install  # Install dependencies first
-npm test     # Run test suite
+npm install     # Install dependencies first
+npm run build   # Validate syntax and code
+npm test        # Run test suite
 
 # For test environment (no background timers)
 NODE_ENV=test npm test
