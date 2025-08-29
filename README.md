@@ -26,8 +26,8 @@ A lightweight MCP server that provides real-time visibility into Claude Code act
 
 2. **Add MCP server to Claude Code:**
    ```bash
-   # Add the observability MCP server (run from project directory)
-   claude mcp add observability node src/server.js
+   # Add the mos MCP server (run from project directory)
+   claude mcp add mos node src/server.js
    
    # Verify it was added successfully
    claude mcp list
@@ -85,8 +85,8 @@ The MCP server automatically configures Claude Code when it loads:
 Add MCP server using Claude CLI:
 
 ```bash
-# Add the observability MCP server (from project directory)
-claude mcp add observability node src/server.js
+# Add the mos MCP server (from project directory)
+claude mcp add mos node src/server.js
 
 # Verify successful registration
 claude mcp get observability

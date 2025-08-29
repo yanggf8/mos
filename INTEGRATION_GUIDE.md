@@ -13,14 +13,14 @@ npm install
 ### 2. Add MCP Server to Claude Code
 ```bash
 # Add the observability MCP server (run from project directory)
-claude mcp add observability node src/server.js
+claude mcp add mos node src/server.js
 
 # Verify it was added successfully
 claude mcp list
-# Should show: observability: node /path/to/mos/src/server.js - ✓ Connected
+# Should show: mos: node /path/to/mos/src/server.js - ✓ Connected
 
 # Get detailed server information
-claude mcp get observability
+claude mcp get mos
 ```
 
 ### 3. Test Integration
@@ -32,7 +32,7 @@ claude -p "Test message" --debug 2>&1 | head -20
 # 🚀 Starting MCP Observability Server...
 # ✅ Claude Code auto-configuration completed
 # 📊 MCP Observability Server running on stdio
-# [DEBUG] MCP server "observability": Successfully connected to stdio server
+# [DEBUG] MCP server "mos": Successfully connected to stdio server
 ```
 
 ## 🎨 What Gets Auto-Configured
@@ -50,13 +50,13 @@ When the MCP server loads, it automatically:
 🚀 Starting MCP Observability Server...
 ✅ Claude Code auto-configuration completed  
 📊 MCP Observability Server running on stdio
-[DEBUG] MCP server "observability": Successfully connected to stdio server in 2338ms
+[DEBUG] MCP server "mos": Successfully connected to stdio server in 2338ms
 ```
 
 ### Integration Confirmed
 When `claude mcp list` shows:
 ```bash
-observability: node /home/user/mos/src/server.js - ✓ Connected
+mos: node /home/user/mos/src/server.js - ✓ Connected
 ```
 
 ### Features Available
@@ -78,12 +78,12 @@ observability: node /home/user/mos/src/server.js - ✓ Connected
 ### List MCP Servers
 ```bash
 claude mcp list
-# observability: node /path/to/mos/src/server.js - ✓ Connected
+# mos: node /path/to/mos/src/server.js - ✓ Connected
 ```
 
 ### Check Server Details
 ```bash
-claude mcp get observability
+claude mcp get mos
 # Status: ✓ Connected
 # Type: stdio  
 # Command: node src/server.js
@@ -91,13 +91,13 @@ claude mcp get observability
 
 ### Enable/Disable Server
 ```bash
-claude mcp enable observability   # Enable if disabled
-claude mcp disable observability  # Temporarily disable
+claude mcp enable mos   # Enable if disabled
+claude mcp disable mos  # Temporarily disable
 ```
 
 ### Remove Server
 ```bash
-claude mcp remove observability   # Completely remove
+claude mcp remove mos   # Completely remove
 ```
 
 ### View Activity Log
@@ -113,7 +113,7 @@ tail -f ~/.claude/observability.log
 claude mcp list
 
 # Get detailed server information
-claude mcp get observability
+claude mcp get mos
 
 # Test with debug output
 claude -p "Test" --debug | grep observability
@@ -134,15 +134,15 @@ cat ~/.claude/settings.json | grep -A 10 "hooks"
 ### MCP Server Connection Issues
 ```bash
 # Check if server is registered
-claude mcp get observability
+claude mcp get mos
 
 # Test server startup manually
 node src/server.js
 # Should show: 🚀 Starting MCP Observability Server...
 
 # Remove and re-add if needed
-claude mcp remove observability
-claude mcp add observability node src/server.js
+claude mcp remove mos
+claude mcp add mos node src/server.js
 ```
 
 ### Auto-Configuration Not Working
@@ -193,8 +193,8 @@ npm install
 ### Reset Configuration
 ```bash
 # Remove and re-add MCP server
-claude mcp remove observability
-claude mcp add observability node src/server.js --cwd $(pwd)
+claude mcp remove mos
+claude mcp add mos node src/server.js --cwd $(pwd)
 ```
 
 ## 📚 Advanced Usage
@@ -214,9 +214,9 @@ Adjust performance thresholds by editing the auto-configuration in `src/claude-c
 
 ## ✅ Verification Checklist
 
-- [ ] `claude mcp add observability node src/server.js` succeeds
+- [ ] `claude mcp add mos node src/server.js` succeeds
 - [ ] `claude mcp list` shows observability server as "✓ Connected"
-- [ ] `claude mcp get observability` shows "Status: ✓ Connected" 
+- [ ] `claude mcp get mos` shows "Status: ✓ Connected" 
 - [ ] `claude -p "Test" --debug` shows MCP server startup messages
 - [ ] Debug output includes "✅ Claude Code auto-configuration completed"
 - [ ] Auto-configuration applies observability settings

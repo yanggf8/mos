@@ -32,7 +32,7 @@ class ObservabilityServer {
   constructor(options = {}) {
     this.server = new Server(
       {
-        name: 'mcp-observability-server',
+        name: 'mos',
         version: '1.0.0',
       },
       {
@@ -267,15 +267,15 @@ class ObservabilityServer {
     // Override the connect method to add initialization logging
     const originalConnect = this.server.connect.bind(this.server);
     this.server.connect = async (transport) => {
-      console.error('🔄 MCP Server: init - Starting initialization sequence');
+      console.error('[MOS] Starting initialization sequence');
       const result = await originalConnect(transport);
-      console.error('✅ MCP Server: init - Server initialization sequence completed');
+      console.error('[MOS] Server initialization sequence completed');
       return result;
     };
   }
 
   handleInitialized() {
-    console.error('✅ MCP Server: ready - Server initialized and ready for requests');
+    console.error('[MOS] Server initialized and ready for requests');
     
     // Optionally send a logging message through MCP protocol
     try {
@@ -322,7 +322,7 @@ class ObservabilityServer {
     // Log server lifecycle status periodically
     setInterval(() => {
       if (this.server.transport && this.server.transport.readyState === 'open') {
-        console.error('📈 MCP Server: Status - Active and processing requests');
+        console.error('[MOS] Status - Active and processing requests');
       }
     }, 60000); // Every 60 seconds
   }
@@ -509,36 +509,36 @@ class ObservabilityServer {
 
   async run() {
     // Auto-configure Claude Code if available
-    console.error('🚀 Starting MCP Observability Server...');
+    console.error('[MOS] Starting MCP Observability Server...');
     
     try {
       const configured = await autoConfigureClaudeCode();
       if (configured) {
-        console.error('✅ Claude Code auto-configuration completed');
+        console.error('[MOS] Claude Code auto-configuration completed');
       }
     } catch (error) {
-      console.error('⚠️  Auto-configuration failed:', error.message);
+      console.error('[MOS] Auto-configuration failed:', error.message);
     }
 
     const transport = new StdioServerTransport();
     
     // Add transport event logging
     transport.onclose = () => {
-      console.error('🔌 MCP Server: Connection closed');
+      console.error('[MOS] Connection closed');
     };
     
     transport.onerror = (error) => {
-      console.error('❌ MCP Server: Connection error:', error);
+      console.error('[MOS] Connection error:', error);
     };
 
     // Log connection attempt
-    console.error('🔄 MCP Server: Connecting to transport...');
+    console.error('[MOS] Connecting to transport...');
     
     await this.server.connect(transport);
     
     // Connection established
-    console.error('✅ MCP Server: connected - Transport connection established');
-    console.error('[MOS] MCP Observability Server listening on stdio');
+    console.error('[MOS] Transport connection established');
+    console.error('[MOS] mos listening on stdio');
   }
 }
 
