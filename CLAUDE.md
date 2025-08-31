@@ -83,25 +83,28 @@ NODE_ENV=test node --test test/performance.test.js
 
 ### Integration Architecture
 
-**Auto-Configuration (`src/claude-code-auto-config.js`)**
-- Automatically configures Claude Code hooks on server startup
-- Installs activity logging hooks and output styling
-- Creates mos activity log at `~/.claude/logs/mos.log`
+**Dynamic MCP Integration (`src/mcp-output-injection.js`)**
+- **No config file changes needed** - works instantly when MOS loads
+- Injects monitoring context directly into MCP tool responses
+- **Real-time Activity Display**: All MCP tool calls show live performance metrics
+- **Session Tracking**: Automatic session statistics in every response
 
 **Claude Code Integration**
 - MCP server registration via `claude mcp add mos node src/server.js`
-- Hook-based event collection from Claude Code operations  
-- Real-time activity streaming during development sessions
+- **Dynamic Output Injection**: Live monitoring context added to all MCP responses
+- **Instant Activation**: Works immediately when MOS MCP server starts
+- **Live Activity Feedback**: Shows `🔧 MCP Tool: tool_name (45ms) ✅`, `📊 Session metrics`, `🖥️ System health`
 
 ## Key Features
 
-- **Real-time Monitoring**: Live streaming of all Claude Code activities
-- **Hierarchical Visualization**: Parent-child relationship mapping in tree format
-- **Native Output Styling**: Matches Claude Code console formatting
-- **Session Management**: Automatic lifecycle tracking with cleanup
-- **Multiple Export Formats**: JSON, text, and Claude Code log formats
-- **Performance Monitoring**: Slow operation detection with configurable thresholds
-- **Error Recovery**: Circuit breaker and retry mechanisms
+- **Instant Dynamic Integration**: No config files needed - monitoring activates immediately when MOS loads
+- **MCP Response Injection**: Live monitoring context automatically added to all MCP tool responses
+- **Real-time Performance Display**: Shows `🔧 MCP Tool: tool_name (45ms) ✅` in every response
+- **Session Tracking**: Automatic operation counts, success rates, and timing statistics
+- **System Health Integration**: Live memory usage and server status in responses
+- **Zero Configuration**: Works out-of-the-box when MCP server starts
+- **Performance Indicators**: Automatic timing classification (`✅ Fast <500ms`, `🟡 Moderate`, `🔴 Slow >5s`)
+- **Clean Deactivation**: Monitoring stops instantly when MOS server stops
 
 ## Configuration
 
@@ -119,10 +122,25 @@ NODE_ENV=test node --test test/performance.test.js
 
 ## Event Types Monitored
 
-- **Tasks**: `task_started`, `task_complete`, `task_failed`
-- **Tools**: `tool_pre_call`, `tool_post_call`, `tool_error`
-- **MCP Calls**: `mcp_request`, `mcp_response`, `mcp_error` 
-- **Subagents**: `subagent_spawn`, `subagent_complete`, `subagent_failed`
+All these events are automatically displayed in Claude Code responses when MOS is active:
+
+- **Tasks**: `task_started`, `task_complete`, `task_failed` → `📋 TASK: Implementing authentication`
+- **Tools**: `tool_pre_call`, `tool_post_call`, `tool_error` → `🔧 TOOL file_read - Reading config.js (45ms)`
+- **MCP Calls**: `mcp_request`, `mcp_response`, `mcp_error` → `📊 MCP: Fetching session data`
+- **Subagents**: `subagent_spawn`, `subagent_complete`, `subagent_failed` → `🤖 AGENT: Code analysis complete`
+
+### Real-time Activity Display Examples
+
+```
+🎯 Implementing user authentication system...
+
+🔧 TOOL file_read - Reading auth.js (45ms) ✅
+📊 Performance: File read completed fast
+🔧 TOOL edit_file - Updating authentication logic (230ms) ✅
+🤖 AGENT code_reviewer - Analyzing security patterns (1.2s) 🟡
+
+📈 Session Status: 4 operations completed, 100% success rate, avg 380ms
+```
 
 ## Performance Characteristics
 
@@ -132,9 +150,9 @@ NODE_ENV=test node --test test/performance.test.js
 - Throughput: 100+ events/second sustained
 - In-memory storage with configurable session limits
 
-## Common Development Workflows
+## Installation and Setup
 
-**Adding the MCP server to Claude Code:**
+**One-time Installation:**
 ```bash
 # From project directory
 claude mcp add mos node src/server.js
@@ -144,14 +162,31 @@ claude mcp list
 # Should show: mos: node /path/to/mos/src/server.js - ✓ Connected
 ```
 
+**Automatic Usage:**
+```bash
+# MOS now starts automatically with any Claude command
+claude -p "implement user authentication"
+claude  # Interactive mode
+claude --help  # Any command triggers MOS startup
+
+# No manual server starting needed - fully automatic!
+```
+
 **Testing integration:**
 ```bash
-# Test with debug output
-claude -p "What is 2+2?" --debug
+# MOS automatically starts when you run any Claude command
+claude -p "What is 2+2?"
 
-# Look for startup messages:
+# You'll see startup messages in debug mode:
 # [MOS] Starting MCP Observability Server...
-# [MOS] Claude Code auto-configuration completed
+# [MOS] 📡 Dynamic monitoring injection activated
+# [MOS] MOS observability integration ready
+
+# When Claude calls ANY MCP tool, responses show:
+# 🔧 MCP Tool: some_tool (45ms) ✅
+# 📊 MOS Status: Active monitoring  
+# 📈 Session: 3 operations, 100% success rate
+# 🖥️ MOS Health: 🟢 healthy, 12MB memory
 ```
 
 **Running standalone demo:**

@@ -27,6 +27,7 @@ import {
   formatClaudeCodeActivityStream
 } from './claude-code-formatter.js';
 import { autoConfigureClaudeCode } from './claude-code-auto-config.js';
+import { MCPOutputInjector, wrapToolHandlerWithMonitoring } from './mcp-output-injection.js';
 
 class ObservabilityServer {
   constructor(options = {}) {
@@ -49,6 +50,9 @@ class ObservabilityServer {
     this.sessionManager = new SessionManager(options.session);
     this.activityStreamer = new ActivityStreamer(options.streaming);
     this.displaySettings = new Map();
+    
+    // Initialize MCP output injection for dynamic monitoring behavior
+    this.outputInjector = new MCPOutputInjector(this.sessionManager, this.healthMonitor);
 
     this.setupHealthMonitoring();
     this.setupHandlers();
@@ -56,100 +60,26 @@ class ObservabilityServer {
   }
 
   setupHandlers() {
-    // List available tools
+    // List available tools - minimal set since activity shows automatically in responses
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
         {
-          name: 'stream_activity',
-          description: 'Stream real-time activity updates for a session',
+          name: 'get_monitoring_context',
+          description: 'Get current monitoring context and activity status (always shows in responses when MOS is active)',
           inputSchema: {
             type: 'object',
             properties: {
-              session_id: {
-                type: 'string',
-                description: 'Session identifier to monitor'
-              },
-              output_format: {
-                type: 'string', 
-                enum: ['claude_code_style', 'json', 'plain'],
-                default: 'claude_code_style',
-                description: 'Output format style'
-              },
-              show_progress: {
+              include_health: {
                 type: 'boolean',
                 default: true,
-                description: 'Show progress indicators for running operations'
+                description: 'Include system health information'
               },
-              collapse_completed: {
-                type: 'boolean', 
-                default: false,
-                description: 'Collapse completed operations'
-              }
-            },
-            required: ['session_id']
-          }
-        },
-        {
-          name: 'get_activity_tree',
-          description: 'Get hierarchical view of session activities',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              session_id: {
-                type: 'string',
-                description: 'Session identifier'
-              },
-              include_completed: {
+              include_session_stats: {
                 type: 'boolean',
                 default: true,
-                description: 'Include completed activities'
-              },
-              max_depth: {
-                type: 'number',
-                default: 5,
-                description: 'Maximum tree depth to display'
+                description: 'Include current session statistics'
               }
-            },
-            required: ['session_id']
-          }
-        },
-        {
-          name: 'configure_display',
-          description: 'Configure display settings for a session',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              session_id: {
-                type: 'string',
-                description: 'Session identifier'
-              },
-              settings: {
-                type: 'object',
-                properties: {
-                  show_timings: {
-                    type: 'boolean',
-                    default: true
-                  },
-                  collapse_fast_ops: {
-                    type: 'boolean', 
-                    default: true
-                  },
-                  threshold_slow_ms: {
-                    type: 'number',
-                    default: 500
-                  },
-                  max_tree_depth: {
-                    type: 'number',
-                    default: 3
-                  },
-                  highlight_errors: {
-                    type: 'boolean',
-                    default: true
-                  }
-                }
-              }
-            },
-            required: ['session_id', 'settings']
+            }
           }
         },
         {
@@ -170,29 +100,6 @@ class ObservabilityServer {
               }
             },
             required: ['session_id']
-          }
-        },
-        {
-          name: 'log_event',
-          description: 'Log a new activity event (used by Claude Code hooks)',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              event: {
-                type: 'object',
-                properties: {
-                  session_id: { type: 'string' },
-                  event_type: { type: 'string' },
-                  status: { type: 'string' },
-                  duration_ms: { type: 'number' },
-                  parent_id: { type: 'string' },
-                  correlation_id: { type: 'string' },
-                  details: { type: 'object' }
-                },
-                required: ['session_id', 'event_type', 'status']
-              }
-            },
-            required: ['event']
           }
         },
         {
@@ -218,24 +125,30 @@ class ObservabilityServer {
       const startTime = performance.now();
 
       const handler = this.errorHandler.wrapWithErrorHandling(async () => {
+        // Get or create session ID for monitoring context
+        const sessionId = args.session_id || this.generateSessionId();
+        
         switch (name) {
-          case 'stream_activity':
-            return await this.handleStreamActivity(args);
-          
-          case 'get_activity_tree':
-            return await this.handleGetActivityTree(args);
-            
-          case 'configure_display':
-            return await this.handleConfigureDisplay(args);
+          case 'get_monitoring_context':
+            return await wrapToolHandlerWithMonitoring(
+              this.handleGetMonitoringContext,
+              this.outputInjector,
+              'get_monitoring_context'
+            ).call(this, args, sessionId);
             
           case 'export_session':
-            return await this.handleExportSession(args);
-            
-          case 'log_event':
-            return await this.handleLogEvent(args);
+            return await wrapToolHandlerWithMonitoring(
+              this.handleExportSession, 
+              this.outputInjector, 
+              'export_session'
+            ).call(this, args, sessionId);
 
           case 'get_health_status':
-            return await this.handleGetHealthStatus(args);
+            return await wrapToolHandlerWithMonitoring(
+              this.handleGetHealthStatus, 
+              this.outputInjector, 
+              'get_health_status'  
+            ).call(this, args, sessionId);
             
           default:
             throw new McpError(
@@ -244,7 +157,7 @@ class ObservabilityServer {
             );
         }
       }, `tool:${name}`, {
-        retries: name === 'log_event' ? 2 : 0,
+        retries: 0,
         timeout: 30000,
         circuitBreaker: true
       });
@@ -270,8 +183,16 @@ class ObservabilityServer {
       console.error('[MOS] Starting initialization sequence');
       const result = await originalConnect(transport);
       console.error('[MOS] Server initialization sequence completed');
+      console.error('[MOS] 📡 Dynamic monitoring injection activated');
       return result;
     };
+  }
+
+  /**
+   * Generate a session ID for monitoring context
+   */
+  generateSessionId() {
+    return `mcp-session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
   handleInitialized() {
@@ -353,70 +274,41 @@ class ObservabilityServer {
     };
   }
 
-  async handleStreamActivity(args) {
-    const { session_id, output_format = 'claude_code_style', show_progress = true, collapse_completed = false } = args;
+
+  async handleGetMonitoringContext(args) {
+    const { include_health = true, include_session_stats = true } = args;
+    const sessionId = args.session_id || this.generateSessionId();
     
-    // Get or create session
-    let session = this.sessionManager.getSession(session_id);
-    if (!session) {
-      session = this.sessionManager.createSession(session_id);
+    // This tool is designed to be called automatically by Claude 
+    // and will inject live monitoring information into responses
+    
+    const contextLines = [
+      '🎯 MOS Live Monitoring Active',
+      '',
+      '🔧 Current Activity: Processing your request with real-time observability',
+      '📡 MCP Integration: Dynamic monitoring injection enabled',
+    ];
+    
+    if (include_session_stats) {
+      const sessionStats = this.outputInjector.getSessionStats(sessionId);
+      contextLines.push(`📊 ${sessionStats}`);
     }
-
-    // Start streaming for this session
-    const streamId = this.activityStreamer.startStream(session_id, {
-      output_format,
-      show_progress,
-      collapse_completed
-    });
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `Started activity stream for session ${session_id}\nStream ID: ${streamId}\nFormat: ${output_format}`
-        }
-      ]
-    };
-  }
-
-  async handleGetActivityTree(args) {
-    const { session_id, include_completed = true, max_depth = 5 } = args;
     
-    const session = this.sessionManager.getSession(session_id);
-    if (!session) {
-      throw new McpError(ErrorCode.InvalidRequest, `Session ${session_id} not found`);
+    if (include_health) {
+      const healthSummary = this.outputInjector.getSystemHealthSummary();
+      if (healthSummary) {
+        contextLines.push(healthSummary);
+      }
     }
-
-    const activityTree = this.sessionManager.buildActivityTree(session_id, {
-      include_completed,
-      max_depth
-    });
-
-    const formattedLines = formatActivityTree(activityTree, {
-      showTimings: true,
-      showIcons: true
-    });
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: formattedLines.join('\n')
-        }
-      ]
-    };
-  }
-
-  async handleConfigureDisplay(args) {
-    const { session_id, settings } = args;
     
-    this.displaySettings.set(session_id, settings);
+    contextLines.push('');
+    contextLines.push('💡 This monitoring data appears automatically when MOS is active');
     
     return {
       content: [
         {
           type: 'text',
-          text: `Display settings updated for session ${session_id}`
+          text: contextLines.join('\n')
         }
       ]
     };
@@ -468,44 +360,6 @@ class ObservabilityServer {
     };
   }
 
-  async handleLogEvent(args) {
-    const { event } = args;
-    const eventProcessingStart = performance.now();
-    
-    if (!validateEvent(event)) {
-      throw new McpError(ErrorCode.InvalidRequest, 'Invalid event structure');
-    }
-
-    try {
-      // Ensure session exists
-      let session = this.sessionManager.getSession(event.session_id);
-      if (!session) {
-        session = this.sessionManager.createSession(event.session_id, 
-          event.details?.task_name || 'Unknown Task');
-      }
-
-      // Add event to session
-      const addedEvent = this.sessionManager.addEvent(event.session_id, event);
-      
-      // Stream the event to any active listeners
-      this.activityStreamer.broadcastEvent(event.session_id, addedEvent);
-
-      // Record event processing metrics
-      const processingTime = performance.now() - eventProcessingStart;
-      this.healthMonitor.recordEvent(event.event_type, processingTime);
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Event logged: ${event.event_type} for session ${event.session_id}`
-          }
-        ]
-      };
-    } catch (error) {
-      throw this.errorHandler.handleSessionError(error, event.session_id, 'log_event');
-    }
-  }
 
   async run() {
     // Auto-configure Claude Code if available

@@ -16,64 +16,77 @@ export class ClaudeCodeAutoConfig {
     this.claudeDir = path.join(os.homedir(), '.claude');
     this.settingsFile = path.join(this.claudeDir, 'settings.json');
     this.outputStylesDir = path.join(this.claudeDir, 'output-styles');
+    this.backupFile = path.join(this.claudeDir, '.mos-style-backup.json');
   }
 
   /**
    * Apply default observability configuration when server starts
-   * Focus on MCP-based observability, not direct hooks
+   * MOS provides dynamic output behavior through MCP protocol responses
    */
   async applyDefaultConfiguration() {
-    console.log('🔧 Auto-configuring Claude Code for mos...');
+    console.log('🔧 Initializing MOS observability integration...');
 
     try {
-      // 1. Ensure output styles are available
-      await this.ensureOutputStyles();
-
-      // 2. Apply default mos style
-      await this.setDefaultOutputStyle();
-
-      // 3. Initialize mos (server handles monitoring via MCP tools)
+      // 1. Initialize mos logging and session tracking
       await this.initializeMCPObservability();
-
-      console.log('✅ Claude Code mos auto-configuration completed');
+      
+      // 2. MOS will inject monitoring behavior through MCP responses
+      // No config file changes needed - all dynamic through SDK
+      
+      console.log('✅ MOS observability integration ready');
+      console.log('📡 Dynamic output styling will activate when Claude uses MCP tools');
       return true;
     } catch (error) {
-      console.warn('⚠️  Could not auto-configure Claude Code:', error.message);
+      console.warn('⚠️  Could not initialize MOS integration:', error.message);
       return false;
     }
   }
 
   /**
-   * Ensure mos output styles are installed
+   * Ensure mos output styles are installed and copy monitoring companion style
    */
   async ensureOutputStyles() {
     const stylesDir = this.outputStylesDir;
     
     if (!existsSync(stylesDir)) {
-      return; // Claude Code not installed or configured
+      mkdirSync(stylesDir, { recursive: true });
+      console.log('📁 Created output-styles directory');
     }
 
-    const mosStyle = path.join(stylesDir, 'mos-default.md');
+    // Copy monitoring companion style from examples
+    const sourceStyle = path.join(process.cwd(), 'examples', 'output-styles', 'monitoring-companion.md');
+    const targetStyle = path.join(stylesDir, 'mos-monitoring-companion.md');
     
-    if (!existsSync(mosStyle)) {
-      // Create default mos style
-      const styleContent = this.createDefaultMosStyle();
-      writeFileSync(mosStyle, styleContent);
-      console.log('📝 Created default mos output style');
+    try {
+      if (existsSync(sourceStyle)) {
+        const styleContent = readFileSync(sourceStyle, 'utf8');
+        writeFileSync(targetStyle, styleContent);
+        console.log('📝 Applied mos-monitoring-companion output style');
+      } else {
+        // Fallback: create basic monitoring style
+        const styleContent = this.createMonitoringCompanionStyle();
+        writeFileSync(targetStyle, styleContent);
+        console.log('📝 Created fallback mos-monitoring-companion output style');
+      }
+    } catch (error) {
+      console.warn('Could not install output style:', error.message);
     }
   }
 
   /**
-   * Set default output style to mos-focused
+   * Store current output style and apply MOS monitoring companion style
    */
   async setDefaultOutputStyle() {
+    // First, backup the current output style
+    await this.backupCurrentOutputStyle();
+    
     try {
-      // Use Claude Code CLI to set default style
-      execSync('claude config set output-style mos-default', { 
+      // Use Claude Code CLI to set monitoring companion style
+      execSync('claude config set output-style mos-monitoring-companion', { 
         stdio: 'ignore',
         timeout: 5000 
       });
-      console.log('🎨 Applied default mos output style');
+      console.log('🎨 Applied mos-monitoring-companion output style (original backed up)');
     } catch (error) {
       // Fallback: modify settings.json directly
       await this.setOutputStyleInSettings();
@@ -90,11 +103,48 @@ export class ClaudeCodeAutoConfig {
 
     try {
       const settings = JSON.parse(readFileSync(this.settingsFile, 'utf8'));
-      settings.defaultOutputStyle = 'mos-default';
+      settings.defaultOutputStyle = 'mos-monitoring-companion';
       writeFileSync(this.settingsFile, JSON.stringify(settings, null, 2));
-      console.log('📝 Updated default output style in settings.json');
+      console.log('📝 Updated output style to mos-monitoring-companion in settings.json (original backed up)');
     } catch (error) {
       console.warn('Could not update settings.json:', error.message);
+    }
+  }
+
+  /**
+   * Backup current output style before applying MOS style
+   */
+  async backupCurrentOutputStyle() {
+    try {
+      let currentStyle = null;
+      
+      // Try to get current style from CLI
+      try {
+        const result = execSync('claude config get output-style', { 
+          stdio: ['ignore', 'pipe', 'ignore'],
+          timeout: 3000,
+          encoding: 'utf8'
+        });
+        currentStyle = result.trim();
+      } catch (error) {
+        // Fallback: get from settings.json
+        if (existsSync(this.settingsFile)) {
+          const settings = JSON.parse(readFileSync(this.settingsFile, 'utf8'));
+          currentStyle = settings.defaultOutputStyle || null;
+        }
+      }
+      
+      // Store backup info
+      const backup = {
+        timestamp: new Date().toISOString(),
+        originalStyle: currentStyle,
+        backupReason: 'MOS MCP server activation'
+      };
+      
+      writeFileSync(this.backupFile, JSON.stringify(backup, null, 2));
+      console.log(`💾 Backed up original output style: ${currentStyle || 'default'}`);
+    } catch (error) {
+      console.warn('Could not backup current output style:', error.message);
     }
   }
 
@@ -124,44 +174,51 @@ export class ClaudeCodeAutoConfig {
   }
 
   /**
-   * Create default mos style content
+   * Create monitoring companion style content (fallback)
    */
-  createDefaultMosStyle() {
+  createMonitoringCompanionStyle() {
     return `---
-name: "Observability Default"
-description: "Auto-applied mos style when MCP server is active"
+name: "MOS Monitoring Companion"
+description: "Real-time activity display for Claude Code with MOS integration"
 version: "1.0.0"
 ---
 
-# Default Observability Style
+# MOS Monitoring Companion
 
-You are working with an active MCP Observability Server that monitors your tool usage and performance. 
+You are a development companion that provides real-time insights about system activity, performance, and observability with MOS integration.
 
-## Behavior Changes
+## Response Behavior
 
-When you notice tool operations or performance events:
+### Live Activity Display
+Show real-time activity for all operations:
+- 🔧 TOOL operations with timing
+- 🤖 AGENT/subagent activities  
+- 📋 TASK progress indicators
+- 📊 MCP server interactions
 
-1. **Acknowledge Slow Operations**: If you see performance alerts like:
-   \`[14:32:22] PERF ⚠️ Slow: database_query (5200ms > 5000ms)\`
-   
-   Briefly acknowledge: "I notice that database query was slow (5.2s). Let me..."
+### Performance Indicators  
+- ✅ Fast: <500ms
+- 🟡 Moderate: 500ms-2s
+- 🟠 Slow: 2s-5s
+- 🔴 Very slow: >5s
 
-2. **Reference Activity Context**: When relevant, mention observed activity:
-   "Based on the file operations I just performed..."
-   "Given the tool execution times I'm seeing..."
+### Session Metrics
+Include periodic session status:
+- 📈 Session: X operations, Y% success rate, avg Zms
 
-3. **Suggest Performance Monitoring**: For complex operations, occasionally suggest:
-   "Consider monitoring this operation's performance in production"
-   "This might benefit from performance tracking"
+## Example Format
 
-## Style Guidelines
+\`\`\`
+🎯 Implementing authentication system...
 
-- **Natural Integration**: Don't over-emphasize mos unless relevant
-- **Performance Awareness**: Note when operations seem slower than expected  
-- **Context Sensitivity**: Reference activity data when it adds value
-- **Actionable Insights**: Provide performance tips when appropriate
+🔧 TOOL file_read - Reading auth.js (45ms) ✅
+🤖 AGENT fullstack_engineer - Designing system (2.1s) 🟡
+📋 TASK: Authentication implementation in progress
 
-This style provides subtle mos awareness without changing your core helpfulness.`;
+📈 Session: 3 operations completed, 100% success rate, avg 890ms
+\`\`\`
+
+Provide natural, helpful responses with integrated observability context.`;
   }
 
   /**

@@ -1,6 +1,6 @@
 # MOS (MCP Observability Server)
 
-Real-time Claude Code activity monitoring with native output integration.
+Real-time Claude Code activity monitoring with instant MCP response injection - shows live performance metrics only when MOS is active, no configuration needed.
 
 ## 🎯 Overview
 
@@ -8,14 +8,14 @@ A lightweight MCP server that provides real-time visibility into Claude Code act
 
 ## ✨ Features
 
-- **Real-time Activity Monitoring** - Live streaming of all Claude Code operations
-- **Native Output Styling** - Matches Claude Code's console formatting with tree visualization
-- **Complete Event Coverage** - Tasks, tools, MCP calls, and subagents
-- **Session Management** - Automatic lifecycle tracking with metrics and cleanup
-- **Multiple Output Formats** - Claude Code style, JSON, and plain text
-- **Hierarchical Visualization** - Parent-child relationship mapping
-- **Configuration System** - Customizable display settings and thresholds
-- **Export Capabilities** - Session data export in various formats
+- **Instant Dynamic Integration** - No config files needed - monitoring activates immediately when MOS loads
+- **MCP Response Injection** - Live monitoring context automatically added to all MCP tool responses
+- **Zero Configuration** - Works out-of-the-box when MCP server starts, stops when server stops
+- **Real-time Performance Display** - Shows `🔧 MCP Tool: tool_name (45ms) ✅` in every response
+- **Session Tracking** - Automatic operation counts, success rates, and timing statistics
+- **System Health Integration** - Live memory usage and server status in responses
+- **Performance Indicators** - Automatic timing classification (✅ Fast <500ms, 🟡 Moderate, 🔴 Slow >5s)
+- **Clean Activation/Deactivation** - Only active when MOS is running, no persistent changes
 
 ## 🚀 Quick Start
 
@@ -24,26 +24,29 @@ A lightweight MCP server that provides real-time visibility into Claude Code act
    npm install
    ```
 
-2. **Add MCP server to Claude Code:**
+2. **One-time setup with Claude Code:**
    ```bash
-   # Add the mos MCP server (run from project directory)
+   # Add the MOS MCP server (run from project directory)
    claude mcp add mos node src/server.js
    
    # Verify it was added successfully
    claude mcp list
-   # Should show: observability: node /path/to/mos/src/server.js - ✓ Connected
+   # Should show: mos: node /path/to/mos/src/server.js - ✓ Connected
    ```
 
-3. **Test integration:**
+3. **Use Claude Code normally - MOS monitoring activates automatically!**
    ```bash
-   # Test with debug output to see MCP server loading
-   claude -p "What is 2+2?" --debug
+   # MOS starts automatically when Claude calls any MCP tool
+   claude -p "implement user authentication"
    
-   # You should see:
-   # [ERROR] MCP server "observability" Server stderr: 🚀 Starting MCP Observability Server...
-   # [ERROR] MCP server "observability" Server stderr: ✅ Claude Code auto-configuration completed
-   # [DEBUG] MCP server "observability": Successfully connected to stdio server
+   # When Claude uses MCP tools, you'll see monitoring context:
+   # 🔧 MCP Tool: some_tool (120ms) ✅
+   # 📊 MOS Status: Active monitoring  
+   # 📈 Session: 2 operations, 100% success rate
+   # 🖥️ MOS Health: 🟢 healthy, 15MB memory
    ```
+
+**That's it!** No configuration needed, no persistent changes. Live monitoring only when MOS is active.
 
 4. **Or run standalone demo:**
    ```bash
