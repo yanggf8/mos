@@ -1,4 +1,4 @@
-# MCP Observability Server
+# MOS (MCP Observability Server)
 
 Real-time Claude Code activity monitoring with native output integration.
 
@@ -78,8 +78,8 @@ A lightweight MCP server that provides real-time visibility into Claude Code act
 ### Automatic Setup (Recommended)
 The MCP server automatically configures Claude Code when it loads:
 - Installs colored activity logging hooks
-- Sets observability-focused output style  
-- Creates activity log at `~/.claude/observability.log`
+- Sets mos-focused output style  
+- Creates activity log at `~/.claude/logs/mos.log`
 
 ### Manual Setup
 Add MCP server using Claude CLI:
@@ -89,7 +89,7 @@ Add MCP server using Claude CLI:
 claude mcp add mos node src/server.js
 
 # Verify successful registration
-claude mcp get observability
+claude mcp get mos
 ```
 
 ### Verify Integration
@@ -97,21 +97,21 @@ claude mcp get observability
 # List all configured MCP servers
 claude mcp list
 
-# Check observability server details
-claude mcp get observability
+# Check mos server details
+claude mcp get mos
 # Status: ✓ Connected
 # Command: node src/server.js
 
 # Test with debug output
-claude -p "Hello world" --debug | grep observability
+claude -p "Hello world" --debug | grep mos
 ```
 
 ### What You'll See
 When MCP server loads successfully:
 ```bash
 🚀 Starting MCP Observability Server...
-✅ Claude Code auto-configuration completed  
-📊 MCP Observability Server running on stdio
+✅ Claude Code mos auto-configuration completed  
+📊 mos listening on stdio
 ```
 
 Once integrated, Claude Code provides:
@@ -119,7 +119,7 @@ Once integrated, Claude Code provides:
 - **Colored activity logging** (auto-configured hooks)
 - **Performance monitoring** for slow operations (>5s)
 - **Session tracking** with automatic cleanup
-- **Observability-focused output style** applied automatically
+- **MOS-focused output style** applied automatically
 
 ## 🛠️ API Methods
 

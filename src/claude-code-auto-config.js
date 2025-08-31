@@ -1,10 +1,10 @@
 /**
- * Auto-configuration for Claude Code when MCP Observability Server loads
- * Automatically applies observability-friendly settings and styles
+ * Auto-configuration for Claude Code when MOS (MCP Observability Server) loads
+ * Automatically applies mos-friendly settings and styles
  */
 
 import { execSync } from 'child_process';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import path from 'path';
 import os from 'os';
 
@@ -23,19 +23,19 @@ export class ClaudeCodeAutoConfig {
    * Focus on MCP-based observability, not direct hooks
    */
   async applyDefaultConfiguration() {
-    console.log('🔧 Auto-configuring Claude Code for MCP observability...');
+    console.log('🔧 Auto-configuring Claude Code for mos...');
 
     try {
       // 1. Ensure output styles are available
       await this.ensureOutputStyles();
 
-      // 2. Apply default observability style
+      // 2. Apply default mos style
       await this.setDefaultOutputStyle();
 
-      // 3. Initialize MCP observability (server handles monitoring via MCP tools)
+      // 3. Initialize mos (server handles monitoring via MCP tools)
       await this.initializeMCPObservability();
 
-      console.log('✅ Claude Code MCP observability auto-configuration completed');
+      console.log('✅ Claude Code mos auto-configuration completed');
       return true;
     } catch (error) {
       console.warn('⚠️  Could not auto-configure Claude Code:', error.message);
@@ -44,7 +44,7 @@ export class ClaudeCodeAutoConfig {
   }
 
   /**
-   * Ensure observability output styles are installed
+   * Ensure mos output styles are installed
    */
   async ensureOutputStyles() {
     const stylesDir = this.outputStylesDir;
@@ -53,27 +53,27 @@ export class ClaudeCodeAutoConfig {
       return; // Claude Code not installed or configured
     }
 
-    const observabilityStyle = path.join(stylesDir, 'observability-default.md');
+    const mosStyle = path.join(stylesDir, 'mos-default.md');
     
-    if (!existsSync(observabilityStyle)) {
-      // Create default observability style
-      const styleContent = this.createDefaultObservabilityStyle();
-      writeFileSync(observabilityStyle, styleContent);
-      console.log('📝 Created default observability output style');
+    if (!existsSync(mosStyle)) {
+      // Create default mos style
+      const styleContent = this.createDefaultMosStyle();
+      writeFileSync(mosStyle, styleContent);
+      console.log('📝 Created default mos output style');
     }
   }
 
   /**
-   * Set default output style to observability-focused
+   * Set default output style to mos-focused
    */
   async setDefaultOutputStyle() {
     try {
       // Use Claude Code CLI to set default style
-      execSync('claude config set output-style observability-default', { 
+      execSync('claude config set output-style mos-default', { 
         stdio: 'ignore',
         timeout: 5000 
       });
-      console.log('🎨 Applied default observability output style');
+      console.log('🎨 Applied default mos output style');
     } catch (error) {
       // Fallback: modify settings.json directly
       await this.setOutputStyleInSettings();
@@ -90,7 +90,7 @@ export class ClaudeCodeAutoConfig {
 
     try {
       const settings = JSON.parse(readFileSync(this.settingsFile, 'utf8'));
-      settings.defaultOutputStyle = 'observability-default';
+      settings.defaultOutputStyle = 'mos-default';
       writeFileSync(this.settingsFile, JSON.stringify(settings, null, 2));
       console.log('📝 Updated default output style in settings.json');
     } catch (error) {
@@ -99,32 +99,37 @@ export class ClaudeCodeAutoConfig {
   }
 
   /**
-   * Initialize MCP observability - prepare for activity monitoring via MCP tools
+   * Initialize mos - prepare for activity monitoring via MCP tools
    */
   async initializeMCPObservability() {
     try {
-      // Create observability log directory
-      const logPath = path.join(this.claudeDir, 'observability.log');
+      // Create mos log directory to avoid conflicts with other MCP servers
+      const logsDir = path.join(this.claudeDir, 'logs');
+      if (!existsSync(logsDir)) {
+        mkdirSync(logsDir, { recursive: true });
+      }
+      
+      const logPath = path.join(logsDir, 'mos.log');
       if (!existsSync(logPath)) {
         writeFileSync(logPath, '');
-        console.log('📝 Created MCP observability log file');
+        console.log('📝 Created MCP mos log file');
       }
       
       // The MCP server will handle activity monitoring via its tools
       // No direct hooks needed - Claude Code will call MCP tools for logging
-      console.log('🔗 MCP observability initialized - monitoring via MCP protocol');
+      console.log('🔗 mos initialized - monitoring via MCP protocol');
     } catch (error) {
-      console.warn('Could not initialize MCP observability:', error.message);
+      console.warn('Could not initialize mos:', error.message);
     }
   }
 
   /**
-   * Create default observability style content
+   * Create default mos style content
    */
-  createDefaultObservabilityStyle() {
+  createDefaultMosStyle() {
     return `---
 name: "Observability Default"
-description: "Auto-applied observability style when MCP server is active"
+description: "Auto-applied mos style when MCP server is active"
 version: "1.0.0"
 ---
 
@@ -151,16 +156,16 @@ When you notice tool operations or performance events:
 
 ## Style Guidelines
 
-- **Natural Integration**: Don't over-emphasize observability unless relevant
+- **Natural Integration**: Don't over-emphasize mos unless relevant
 - **Performance Awareness**: Note when operations seem slower than expected  
 - **Context Sensitivity**: Reference activity data when it adds value
 - **Actionable Insights**: Provide performance tips when appropriate
 
-This style provides subtle observability awareness without changing your core helpfulness.`;
+This style provides subtle mos awareness without changing your core helpfulness.`;
   }
 
   /**
-   * MCP observability relies on the MCP server's tools, not direct hooks
+   * mos relies on the MCP server's tools, not direct hooks
    * This method is kept for reference but no longer used for auto-configuration
    */
   createMCPObservabilityReference() {
@@ -168,7 +173,7 @@ This style provides subtle observability awareness without changing your core he
       note: "Observability is handled by MCP server tools, not direct Claude Code hooks",
       approach: "Claude Code calls MCP server tools like log_event, stream_activity, get_health_status",
       benefits: [
-        "Centralized observability logic in MCP server",
+        "Centralized mos logic in MCP server",
         "No direct settings.json manipulation needed", 
         "Proper MCP protocol usage",
         "Server-managed activity monitoring"

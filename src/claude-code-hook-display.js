@@ -1,6 +1,6 @@
 /**
  * Claude Code Hook Display Integration
- * Uses Claude Code's hook system to display observability information natively
+ * Uses Claude Code's hook system to display mos information natively
  * 
  * Based on the hooks guide, Claude Code hooks can:
  * - Display messages through shell commands
@@ -21,7 +21,7 @@ import {
 } from './activity-colors.js';
 
 /**
- * Format observability data for Claude Code hook display
+ * Format mos data for Claude Code hook display
  * Matches the patterns shown in the hooks guide examples
  */
 
@@ -160,7 +160,7 @@ export function formatHookHealthStatus(health) {
  */
 export function generateClaudeCodeHookConfig() {
   return {
-    "observability_activity": {
+    "mos_activity": {
       "command": ["node", "-e", `
         // Call our MCP server to get activity stream
         import('./src/claude-code-hook-client.js').then(client => {
@@ -170,11 +170,11 @@ export function generateClaudeCodeHookConfig() {
       "matchers": [
         {
           "events": ["PreToolUse", "PostToolUse"],
-          "description": "Log tool activity to observability server"
+          "description": "Log tool activity to mos server"
         }
       ]
     },
-    "observability_performance": {
+    "mos_performance": {
       "command": ["node", "-e", `
         // Check for performance alerts
         import('./src/claude-code-hook-client.js').then(client => {
@@ -192,7 +192,7 @@ export function generateClaudeCodeHookConfig() {
         }
       ]
     },
-    "observability_session": {
+    "mos_session": {
       "command": ["node", "-e", `
         // Display session summary on completion
         import('./src/claude-code-hook-client.js').then(client => {
@@ -223,7 +223,7 @@ export function createHookShellCommands() {
   return {
     // Simple activity logging (like the hooks guide bash example)
     activity_logger: {
-      command: 'echo "$(date): $TOOL_NAME - $TOOL_DESCRIPTION" >> ~/.claude/observability.log',
+      command: 'echo "$(date): $TOOL_NAME - $TOOL_DESCRIPTION" >> ~/.claude/logs/mos.log',
       description: 'Log tool activity to file'
     },
     
@@ -253,11 +253,11 @@ export function createHookShellCommands() {
 
 /**
  * Format for Claude Code statusline integration
- * @param {Object} observabilityData - Current observability data
+ * @param {Object} mosData - Current mos data
  * @returns {string} Statusline formatted text
  */
-export function formatStatuslineDisplay(observabilityData) {
-  const { health, activeEvents, currentSession } = observabilityData;
+export function formatStatuslineDisplay(mosData) {
+  const { health, activeEvents, currentSession } = mosData;
   
   const parts = [];
   

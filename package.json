@@ -1,7 +1,7 @@
 {
   "name": "mcp-observability-server",
   "version": "1.0.0",
-  "description": "Real-time Claude Code activity monitoring MCP server",
+  "description": "MOS - Real-time Claude Code activity monitoring MCP server",
   "main": "src/server.js",
   "type": "module",
   "scripts": {
@@ -20,7 +20,8 @@
   },
   "keywords": [
     "mcp",
-    "observability",
+    "mos",
+    "observability", 
     "claude-code",
     "monitoring"
   ],

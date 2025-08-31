@@ -127,7 +127,7 @@ export class ClaudeCodeHookClient {
    */
   async getStatuslineData() {
     try {
-      const observabilityData = {
+      const mosData = {
         health: {
           status: 'healthy',
           memory: { current_mb: 85 }
@@ -140,7 +140,7 @@ export class ClaudeCodeHookClient {
         }
       };
       
-      return formatStatuslineDisplay(observabilityData);
+      return formatStatuslineDisplay(mosData);
     } catch (error) {
       return '🔴 Observability unavailable';
     }

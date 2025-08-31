@@ -1,4 +1,4 @@
-# MCP Observability Server Usage Guide
+# MOS (MCP Observability Server) Usage Guide
 
 ## Installation and Setup
 
@@ -29,15 +29,15 @@ Add this to your Claude Code `settings.json`:
 ```json
 {
   "mcpServers": {
-    "observability": {
+    "mos": {
       "command": "node",
-      "args": ["path/to/mcp-observability-server/src/server.js"],
-      "cwd": "path/to/mcp-observability-server"
+      "args": ["path/to/mos/src/server.js"],
+      "cwd": "path/to/mos"
     }
   },
   "hooks": {
-    "mcp_observability": {
-      "server": "observability",
+    "mcp_mos": {
+      "server": "mos",
       "events": {
         "task_start": "log_event",
         "task_complete": "log_event",
