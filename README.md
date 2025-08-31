@@ -8,14 +8,32 @@ A lightweight MCP server that provides real-time visibility into Claude Code act
 
 ## ✨ Features
 
-- **Instant Dynamic Integration** - No config files needed - monitoring activates immediately when MOS loads
-- **MCP Response Injection** - Live monitoring context automatically added to all MCP tool responses
-- **Zero Configuration** - Works out-of-the-box when MCP server starts, stops when server stops
-- **Real-time Performance Display** - Shows `🔧 MCP Tool: tool_name (45ms) ✅` in every response
-- **Session Tracking** - Automatic operation counts, success rates, and timing statistics
+- **MCP Tool Monitoring** - Real-time display of MCP tool calls with performance metrics
+- **Session Tracking** - Automatic operation counts, success rates, and timing statistics  
 - **System Health Integration** - Live memory usage and server status in responses
+- **Dynamic Injection** - Live monitoring context automatically added to MCP tool responses
 - **Performance Indicators** - Automatic timing classification (✅ Fast <500ms, 🟡 Moderate, 🔴 Slow >5s)
+- **Zero Configuration** - Works out-of-the-box when MCP server starts
 - **Clean Activation/Deactivation** - Only active when MOS is running, no persistent changes
+
+## Current Scope & Limitations
+
+**✅ Currently Working:**
+- MCP tool call monitoring (`export_session`, `get_health_status`, `get_monitoring_context`)
+- Real-time performance metrics in MCP responses
+- Session statistics and system health display
+- Dynamic activation when MOS starts, clean deactivation when stops
+
+**⚠️ Not Yet Implemented:**
+- Regular tool monitoring (Read, Write, Bash, etc.)
+- Task execution tracking (main Claude Code activities)  
+- Subagent activity monitoring (agent spawning and completion)
+- Complete Claude Code workflow visualization
+
+**Future Enhancements:**
+- Claude Code hooks integration for comprehensive activity monitoring
+- Real-time capture of all Claude Code operations (not just MCP tools)
+- Full activity tree visualization for complex multi-agent workflows
 
 ## 🚀 Quick Start
 

@@ -1,0 +1,118 @@
+{
+  "hooks": {
+    "mos_session_start": {
+      "command": [
+        "sh", "-c", 
+        "echo \"Session started: $CLAUDE_SESSION_ID\" | curl -X POST -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"log_event\",\"arguments\":{\"event\":{\"session_id\":\"'$CLAUDE_SESSION_ID'\",\"event_type\":\"session_started\",\"status\":\"started\",\"details\":{\"reason\":\"'$REASON'\",\"matcher\":\"'$MATCHER'\"}}}}}}' http://localhost:3001/mcp 2>/dev/null || true"
+      ],
+      "matchers": [
+        {
+          "events": ["SessionStart"],
+          "description": "Log session start to MOS server"
+        }
+      ]
+    },
+
+    "mos_task_subagent_start": {
+      "command": [
+        "sh", "-c",
+        "curl -X POST -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"log_event\",\"arguments\":{\"event\":{\"session_id\":\"'$CLAUDE_SESSION_ID'\",\"event_type\":\"subagent_spawn\",\"status\":\"started\",\"details\":{\"name\":\"Task\",\"description\":\"'$TOOL_DESCRIPTION'\",\"arguments\":\"'$(echo $TOOL_ARGUMENTS | head -c 100)'\"}}}}}' http://localhost:3001/mcp 2>/dev/null || true"
+      ],
+      "matchers": [
+        {
+          "events": ["PreToolUse"],
+          "tools": ["Task"],
+          "description": "Log subagent/task start to MOS server"
+        }
+      ]
+    },
+
+    "mos_task_subagent_complete": {
+      "command": [
+        "sh", "-c",
+        "status=$([ \"$TOOL_SUCCESS\" = \"true\" ] && echo \"success\" || echo \"error\"); curl -X POST -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"log_event\",\"arguments\":{\"event\":{\"session_id\":\"'$CLAUDE_SESSION_ID'\",\"event_type\":\"subagent_complete\",\"status\":\"'$status'\",\"duration_ms\":'$TOOL_DURATION',\"details\":{\"name\":\"Task\",\"description\":\"'$TOOL_DESCRIPTION'\",\"success\":\"'$TOOL_SUCCESS'\"}}}}}' http://localhost:3001/mcp 2>/dev/null || true"
+      ],
+      "matchers": [
+        {
+          "events": ["PostToolUse"],
+          "tools": ["Task"],
+          "description": "Log subagent/task completion to MOS server"
+        }
+      ]
+    },
+
+    "mos_subagent_stop": {
+      "command": [
+        "sh", "-c",
+        "curl -X POST -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"log_event\",\"arguments\":{\"event\":{\"session_id\":\"'$CLAUDE_SESSION_ID'\",\"event_type\":\"subagent_stop\",\"status\":\"completed\",\"details\":{\"reason\":\"'$REASON'\"}}}}}' http://localhost:3001/mcp 2>/dev/null || true"
+      ],
+      "matchers": [
+        {
+          "events": ["SubagentStop"],
+          "description": "Log subagent stop to MOS server"
+        }
+      ]
+    },
+
+    "mos_tool_start": {
+      "command": [
+        "sh", "-c",
+        "curl -X POST -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"log_event\",\"arguments\":{\"event\":{\"session_id\":\"'$CLAUDE_SESSION_ID'\",\"event_type\":\"tool_pre_call\",\"status\":\"started\",\"details\":{\"name\":\"'$TOOL_NAME'\",\"description\":\"'$TOOL_DESCRIPTION'\",\"arguments_size\":'$(echo -n "$TOOL_ARGUMENTS" | wc -c)'}}}}}' http://localhost:3001/mcp 2>/dev/null || true"
+      ],
+      "matchers": [
+        {
+          "events": ["PreToolUse"],
+          "tools": ["Bash", "Read", "Write", "Edit", "Glob", "Grep", "WebFetch"],
+          "description": "Log regular tool start to MOS server"
+        }
+      ]
+    },
+
+    "mos_tool_complete": {
+      "command": [
+        "sh", "-c",
+        "status=$([ \"$TOOL_SUCCESS\" = \"true\" ] && echo \"success\" || echo \"error\"); curl -X POST -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"log_event\",\"arguments\":{\"event\":{\"session_id\":\"'$CLAUDE_SESSION_ID'\",\"event_type\":\"tool_post_call\",\"status\":\"'$status'\",\"duration_ms\":'$TOOL_DURATION',\"details\":{\"name\":\"'$TOOL_NAME'\",\"description\":\"'$TOOL_DESCRIPTION'\",\"success\":\"'$TOOL_SUCCESS'\"}}}}}' http://localhost:3001/mcp 2>/dev/null || true"
+      ],
+      "matchers": [
+        {
+          "events": ["PostToolUse"],
+          "tools": ["Bash", "Read", "Write", "Edit", "Glob", "Grep", "WebFetch"],
+          "description": "Log regular tool completion to MOS server"
+        }
+      ]
+    },
+
+    "mos_performance_alert": {
+      "command": [
+        "sh", "-c",
+        "curl -X POST -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"log_event\",\"arguments\":{\"event\":{\"session_id\":\"'$CLAUDE_SESSION_ID'\",\"event_type\":\"performance_alert\",\"status\":\"warning\",\"duration_ms\":'$TOOL_DURATION',\"details\":{\"name\":\"'$TOOL_NAME'\",\"alert_type\":\"slow_operation\",\"threshold\":5000}}}}}' http://localhost:3001/mcp 2>/dev/null || true"
+      ],
+      "matchers": [
+        {
+          "events": ["PostToolUse"],
+          "conditions": [
+            {
+              "field": "duration_ms",
+              "operator": "greater_than", 
+              "value": 5000
+            }
+          ],
+          "description": "Log performance alerts for slow operations"
+        }
+      ]
+    },
+
+    "mos_session_end": {
+      "command": [
+        "sh", "-c",
+        "curl -X POST -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"log_event\",\"arguments\":{\"event\":{\"session_id\":\"'$CLAUDE_SESSION_ID'\",\"event_type\":\"session_ended\",\"status\":\"completed\",\"details\":{\"reason\":\"'$REASON'\"}}}}}' http://localhost:3001/mcp 2>/dev/null || true"
+      ],
+      "matchers": [
+        {
+          "events": ["SessionEnd"],
+          "description": "Log session end to MOS server"
+        }
+      ]
+    }
+  }
+}
